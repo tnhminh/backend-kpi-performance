@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Backend KPI Performance</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">BACKEND · FPT PLAY</div>
+        <h1>KPI Performance</h1>
+        <p class="subtitle">Tổng hợp đánh giá KPI hàng tháng cho phòng Backend</p>
+      </div>
+      <div class="top-actions">
+        <label class="month-picker">Tháng đánh giá <input id="period" type="month" /></label>
+        <label class="compact-select">Vai trò <select id="roleSelect"><option>Admin</option><option>Leader</option><option>Member</option></select></label>
+        <label class="compact-select">Trạng thái kỳ <select id="statusSelect"><option value="draft">Nháp</option><option value="submitted">Đã gửi</option><option value="approved">Đã duyệt</option><option value="locked">Đã khóa</option></select></label>
+        <button class="btn btn-outline" id="tourBtn">Hướng dẫn nhanh</button>
+        <button class="btn btn-ghost" id="resetBtn">Đặt lại kỳ này</button>
+        <button class="btn btn-primary" id="saveBtn">Lưu dữ liệu</button>
+      </div>
+    </header>
+
+    <aside class="module-sidebar" id="moduleSidebar" aria-label="Điều hướng module">
+      <div class="sidebar-brand"><span class="sidebar-mark">K</span><div><b>Backend KPI</b><small>Performance Hub</small></div></div>
+      <div class="sidebar-label">MODULE</div>
+      <nav class="module-nav"><button class="module-btn active" data-module="dashboard">◈ <span>Tổng quan</span></button><button class="module-btn" data-module="evaluation">▤ <span>Đánh giá member</span></button><button class="module-btn" data-module="comparison">⇄ <span>So sánh liên nhóm</span></button><button class="module-btn" data-module="tasks">＋ <span>Tạo task</span></button><button class="module-btn" data-module="timeline">◷ <span>Timeline & nhắc việc</span></button><button class="module-btn" data-module="demo">▷ <span>Trình giả lập</span></button><button class="module-btn" data-module="formula">ƒ <span>Công thức</span></button><button class="module-btn" data-module="audit">⌁ <span>Audit log</span></button><button class="module-btn" data-module="criteria">☷ <span>Cấu hình tiêu chí</span></button><button class="module-btn" data-module="settings">⚙ <span>Cài đặt</span></button></nav>
+      <div class="sidebar-foot">FPT PLAY · Backend</div>
+    </aside>
+
+    <section class="stats module-section" id="stats"></section>
+
+    <section class="toolbar module-section" id="evaluationToolbar">
+      <div class="tabs" id="groupTabs"></div>
+      <div class="toolbar-right">
+        <label class="search"><span>⌕</span><input id="search" placeholder="Tìm MNV hoặc họ tên..." /></label>
+        <button class="btn btn-outline" id="exportBtn">Xuất CSV</button>
+      </div>
+    </section>
+
+    <section class="card demo-card module-section" id="demoCard">
+      <div class="card-head"><div><h2>Trình giả lập đánh giá</h2><p>Thử thay đổi dữ liệu mẫu để hiểu cách hệ thống tính và so sánh member</p></div><span class="pill">DEMO</span></div>
+      <div id="demoRoot"></div><div id="autoDemoRoot"></div><div id="jiraSimRoot"></div>
+    </section>
+
+    <section class="card formula-card module-section" id="formulaExplainer">
+      <div class="card-head"><div><h2>Cách hệ thống ra kết quả</h2><p>Mở một member để xem số liệu thực tế của từng bước</p></div><span class="pill">CÔNG THỨC</span></div>
+      <div class="formula-grid"><div><b>01 · Điểm đạt</b><span>Cộng điểm đạt của tất cả tiêu chí.</span></div><div><b>02 · Điểm /10</b><span>Điểm đạt ÷ điểm tối đa × 10.</span></div><div><b>03 · Thưởng/trừ</b><span>Cộng hoặc trừ theo số lần phát sinh.</span></div><div><b>04 · Hạng & hệ số</b><span>Đối chiếu ngưỡng A+ đến E để ra hệ số KPI.</span></div></div><div class="measurement-note"><b>Chú thích đo lường: “đúng deadline đã cam kết với stakeholder”</b><span>Tỷ lệ đúng hạn = số yêu cầu hoàn thành đúng deadline ÷ tổng số yêu cầu đã cam kết × 100%.</span><span>Ví dụ: 18/20 yêu cầu đúng hạn = 90% → tiêu chí đạt 3.0 điểm.</span><span>Ngưỡng: ≥90% = 3.0 · ≥75% = 1.8 · ≥60% = 0.8 · &lt;60% = 0.</span><small>Deadline được tính theo thời hạn đã thống nhất với bên yêu cầu, không phải ngày tự đặt nội bộ.</small></div><div class="comparison-example"><b>Ví dụ so sánh CMS và API</b><div class="example-grid"><div><strong>CMS · 8.10/10</strong><span>Completion: 8/10 = 80%</span><span>Effort: 40/50 = 80%</span><span>KPI chất lượng: 8.5/10</span><code>80%×35% + 80%×45% + 85%×20% = 8.10</code></div><div><strong>API · 7.16/10</strong><span>Completion: 15/20 = 75%</span><span>Effort: 50/80 = 62.5%</span><span>KPI chất lượng: 9/10</span><code>75%×35% + 62.5%×45% + 90%×20% = 7.16</code></div></div><small>API có nhiều task hơn nhưng CMS được đánh giá cao hơn vì tỷ lệ effort hoàn thành tốt hơn.</small></div>
+    </section>
+
+    <section class="card dashboard-card module-section" id="dashboardCard"><div class="card-head"><div><h2>Dashboard phòng Backend</h2><p>Nhìn nhanh hiệu suất theo team và loại đánh giá</p></div><span class="pill">TỔNG QUAN</span></div><div id="dashboardRoot"></div></section>
+
+    <section class="content-grid module-section" id="evaluationContent">
+      <section class="card table-card">
+        <div class="card-head"><div><h2>Bảng xếp hạng</h2><p>Điểm /10 = Tổng điểm đạt ÷ Tổng điểm tối đa × 10</p></div><span class="pill" id="memberCount"></span></div>
+        <div class="table-wrap"><table><thead id="tableHead"><tr><th>#</th><th>Member</th><th>Nhóm</th><th>Điểm /10</th><th>Xếp hạng</th><th>Hệ số</th><th>Điểm thưởng/trừ</th></tr></thead><tbody id="rankingBody"></tbody></table></div>
+      </section>
+
+      <aside class="card editor-card">
+        <div class="card-head"><div><h2 id="editorTitle">Chọn một member</h2><p id="editorMeta">Nhập điểm đạt cho từng tiêu chí</p></div><span class="status-dot"></span></div>
+        <div id="editorEmpty" class="empty">Chọn một dòng trong bảng để bắt đầu đánh giá.</div>
+        <div id="editor" class="hidden"></div>
+      </aside>
+    </section>
+
+    <section class="card audit-card module-section" id="auditCard"><div class="card-head"><div><h2>Lịch sử & audit log</h2><p>Ghi nhận các lần lưu dữ liệu và thay đổi trạng thái kỳ</p></div></div><div id="auditRoot"></div></section>
+
+    <section class="card task-card module-section" id="taskCard"><div class="card-head"><div><h2>Tạo task cho member</h2><p>Tạo task tại đây trước; khi kết nối Jira, task sẽ được đẩy xuống Jira tự động</p></div><span class="pill">LOCAL QUEUE</span></div><div id="taskRoot"></div></section>
+
+    <section class="card timeline-card module-section" id="timelineCard"><div class="card-head"><div><h2>Timeline kỳ đánh giá & lịch nhắc</h2><p>Thiết lập các mốc nhập điểm, review và khóa kỳ để mọi người biết việc cần làm</p></div><span class="pill">WORKFLOW</span></div><div id="timelineRoot"></div></section>
+
+    <section class="card settings-card module-section" id="settingsCard"><div class="card-head"><div><h2>Cài đặt tích hợp Jira</h2><p>Cấu hình trước, kết nối Jira sau khi có workspace và quyền truy cập</p></div><span class="pill">CHƯA KẾT NỐI</span></div><div id="settingsRoot"></div></section>
+
+    <section class="card criteria-card module-section" id="criteriaCard"><div class="card-head"><div><h2>Cấu hình tiêu chí KPI</h2><p>Tùy chỉnh tiêu chí lớn, tiêu chí con và trọng số riêng cho từng team; tổng phải bằng 10 điểm</p></div><span class="pill">CONFIG</span></div><div id="criteriaRoot"></div></section>
+
+    <footer><span>Đã đối chiếu công thức từ “Backend Tiêu Chí Đánh Giá.xlsx”</span><span>Điểm tiêu chí không vượt quá điểm tối đa</span></footer>
+  </main>
+  <div class="tour-backdrop hidden" id="tourBackdrop"><div class="tour-popover" role="dialog" aria-modal="true" aria-labelledby="tourTitle"><div class="tour-kicker" id="tourStep">BƯỚC 1 / 5</div><h2 id="tourTitle"></h2><p id="tourText"></p><div class="tour-actions"><button class="btn btn-ghost" id="tourPrev">Quay lại</button><button class="btn btn-primary" id="tourNext">Tiếp theo</button><button class="btn btn-ghost" id="tourClose">Đóng</button></div></div></div>
+  <script src="app.js"></script>
+</body>
+</html>
