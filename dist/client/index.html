@@ -30,7 +30,7 @@
     <aside class="module-sidebar" id="moduleSidebar" aria-label="Điều hướng module">
       <div class="sidebar-brand"><span class="sidebar-mark">K</span><div><b>Backend KPI</b><small>Performance Hub</small></div></div>
       <div class="sidebar-label">MODULE</div>
-      <nav class="module-nav"><button class="module-btn active" data-module="dashboard">◈ <span>Tổng quan</span></button><button class="module-btn" data-module="evaluation">▤ <span>Đánh giá member</span></button><button class="module-btn" data-module="comparison">⇄ <span>So sánh liên nhóm</span></button><button class="module-btn" data-module="tasks">＋ <span>Tạo task</span></button><button class="module-btn" data-module="timeline">◷ <span>Timeline & nhắc việc</span></button><button class="module-btn" data-module="demo">▷ <span>Trình giả lập</span></button><button class="module-btn" data-module="formula">ƒ <span>Công thức</span></button><button class="module-btn" data-module="audit">⌁ <span>Audit log</span></button><button class="module-btn" data-module="criteria">☷ <span>Cấu hình tiêu chí</span></button><button class="module-btn" data-module="settings">⚙ <span>Cài đặt</span></button></nav>
+      <nav class="module-nav"><button class="module-btn active" data-module="dashboard">◈ <span>Tổng quan</span></button><button class="module-btn" data-module="evaluation">▤ <span>Đánh giá member</span></button><button class="module-btn" data-module="comparison">⇄ <span>So sánh liên nhóm</span></button><button class="module-btn" data-module="tasks">＋ <span>Tạo task</span></button><button class="module-btn" data-module="jiraTasks">▣ <span>Task Jira</span></button><button class="module-btn" data-module="timeline">◷ <span>Timeline & nhắc việc</span></button><button class="module-btn" data-module="demo">▷ <span>Trình giả lập</span></button><button class="module-btn" data-module="formula">ƒ <span>Công thức</span></button><button class="module-btn" data-module="audit">⌁ <span>Audit log</span></button><button class="module-btn" data-module="criteria">☷ <span>Cấu hình tiêu chí</span></button><button class="module-btn" data-module="settings">⚙ <span>Cài đặt</span></button></nav>
       <div class="sidebar-foot">FPT PLAY · Backend</div>
     </aside>
 
@@ -72,6 +72,8 @@
     <section class="card audit-card module-section" id="auditCard"><div class="card-head"><div><h2>Lịch sử & audit log</h2><p>Ghi nhận các lần lưu dữ liệu và thay đổi trạng thái kỳ</p></div></div><div id="auditRoot"></div></section>
 
     <section class="card task-card module-section" id="taskCard"><div class="card-head"><div><h2>Tạo task cho member</h2><p>Tạo task tại đây trước; khi kết nối Jira, task sẽ được đẩy xuống Jira tự động</p></div><span class="pill">LOCAL QUEUE</span></div><div id="taskRoot"></div></section>
+
+    <section class="card jira-tasks-card module-section" id="jiraTasksCard"><div class="card-head"><div><h2>Task Jira đã đồng bộ</h2><p>Danh sách issue thật được lấy từ Jira Data Center và dùng cho KPI</p></div><span class="pill">JIRA SYNC</span></div><div id="jiraTasksRoot"></div></section>
 
     <section class="card timeline-card module-section" id="timelineCard"><div class="card-head"><div><h2>Timeline kỳ đánh giá & lịch nhắc</h2><p>Thiết lập các mốc nhập điểm, review và khóa kỳ để mọi người biết việc cần làm</p></div><span class="pill">WORKFLOW</span></div><div id="timelineRoot"></div></section>
 
