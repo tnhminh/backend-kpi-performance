@@ -5,6 +5,7 @@
 - Thêm Jira sync pagination và giới hạn số issue đồng bộ.
 - Cập nhật Jira fields: priority, labels, issue type, created và updated.
 - Thêm cấu hình JQL đồng bộ trực tiếp trên màn hình Cài đặt.
+- Thêm mapping Jira username/email với member nội bộ, gồm ví dụ `minhtnh2` và `manhtc`.
 - Sync Jira theo project/kỳ đánh giá bằng JQL tạo từ cấu hình.
 - Snapshot khóa kỳ lưu bộ tiêu chí hiệu lực để tính lại nhất quán.
 - Sửa criteria Leader khi xem phạm vi Tất cả.
