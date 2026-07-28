@@ -2,6 +2,12 @@
 
 ## 2026-07-28
 
+- Thêm Jira sync pagination và giới hạn số issue đồng bộ.
+- Sync Jira theo project/kỳ đánh giá bằng JQL tạo từ cấu hình.
+- Snapshot khóa kỳ lưu bộ tiêu chí hiệu lực để tính lại nhất quán.
+- Sửa criteria Leader khi xem phạm vi Tất cả.
+- Gộp data-quality dashboard và kiểm tra minh chứng bằng task links.
+- Chặn nút hoàn tất đánh giá đi lùi workflow.
 - Thêm snapshot bất biến khi kỳ chuyển sang trạng thái `Đã khóa`.
 - Thêm data-quality panel trên dashboard: task chưa map, member thiếu workload và bộ tiêu chí sai tổng.
 - Bổ sung export JSON bên cạnh CSV.

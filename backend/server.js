@@ -29,6 +29,7 @@ const config = {
   deadlineField: process.env.JIRA_DEADLINE_FIELD || 'duedate',
   doneStatuses: (process.env.JIRA_DONE_STATUSES || 'Done,Closed,Resolved').split(',').map(x => x.trim()).filter(Boolean),
   maxResults: Number(process.env.SYNC_MAX_RESULTS || 100),
+  maxIssues: Number(process.env.JIRA_SYNC_MAX_ISSUES || 1000),
   defaultJql: process.env.JIRA_DEFAULT_JQL || 'ORDER BY created DESC'
 };
 
@@ -101,6 +102,27 @@ async function searchIssues(query) {
   return { startAt: data.startAt || 0, maxResults: data.maxResults || maxResults, total: data.total || 0, issues: (data.issues || []).map(normalizeIssue) };
 }
 
+async function syncIssues(query) {
+  const limit = Math.min(Number(query.get('maxIssues') || config.maxIssues), 10000);
+  const pageSize = Math.min(Number(query.get('maxResults') || config.maxResults), 1000);
+  let startAt = Number(query.get('startAt') || 0);
+  let total = 0;
+  let pages = 0;
+  const issues = [];
+  while (issues.length < limit) {
+    const pageQuery = new URLSearchParams(query);
+    pageQuery.set('startAt', String(startAt));
+    pageQuery.set('maxResults', String(Math.min(pageSize, limit - issues.length)));
+    const page = await searchIssues(pageQuery);
+    pages += 1;
+    total = page.total;
+    issues.push(...page.issues);
+    if (!page.issues.length || startAt + page.issues.length >= total) break;
+    startAt += page.issues.length;
+  }
+  return { startAt: Number(query.get('startAt') || 0), maxResults: pageSize, maxIssues: limit, pages, total, issues: issues.slice(0, limit) };
+}
+
 async function readJson(req) {
   let body = '';
   for await (const chunk of req) body += chunk;
@@ -123,7 +145,7 @@ async function handle(req, res) {
     if (url.pathname === '/api/jira/test') return send(res, 200, { ok: true, jira: await jiraRequest('/rest/api/2/myself') });
     if (url.pathname === '/api/jira/issues') return send(res, 200, await searchIssues(url.searchParams));
     if (url.pathname === '/api/sync') {
-      const result = await searchIssues(url.searchParams);
+      const result = await syncIssues(url.searchParams);
       return send(res, 200, { syncedAt: new Date().toISOString(), ...result, doneStatuses: config.doneStatuses });
     }
     return send(res, 404, { error: 'Not found' });
