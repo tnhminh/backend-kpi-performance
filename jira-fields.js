@@ -16,7 +16,7 @@ const jiraFieldDefaults=['key','summary','member','status','priority','labels','
 function jiraVisibleFields(){try{const value=JSON.parse(localStorage.getItem(jiraFieldStorageKey)||'null');return Array.isArray(value)&&value.length?value:jiraFieldDefaults.slice()}catch{return jiraFieldDefaults.slice()}}
 function jiraFieldEscape(value){return String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]))}
 function jiraFieldValue(task,key){
-  const value=key==='member'?task.member||'Chưa gán assignee':key==='labels'?(task.labels||[]).join(', ')||'Không có label':key==='status'?(task.done?'Done':task.status||'Open'):task[key];
+  const value=key==='summary'?(task.title||task.summary||'Không có tiêu đề'):key==='member'?task.member||'Chưa gán assignee':key==='labels'?(task.labels||[]).join(', ')||'Không có label':key==='status'?(task.done?'Done':task.status||'Open'):task[key];
   if(value===null||value===undefined||value==='')return '—';
   return jiraFieldEscape(value);
 }
@@ -34,7 +34,7 @@ function renderJiraTasksWithFields(){
   }).join(''):'<div class="jira-empty"><b>Chưa có task Jira</b><span>Vào Cài đặt, nhập token và bấm Đồng bộ Jira Data Center.</span></div>'}</div>`;
   const filter=()=>{const q=(root.querySelector('#jiraTaskSearch')?.value||'').toLowerCase(),status=root.querySelector('#jiraTaskStatus')?.value||'all';root.querySelectorAll('.jira-task-row').forEach(row=>row.hidden=!(row.dataset.taskSearch.includes(q)&&(status==='all'||row.dataset.taskStatus===status)))};
   root.querySelector('#jiraTaskSearch')?.addEventListener('input',filter);root.querySelector('#jiraTaskStatus')?.addEventListener('change',filter);
-  root.querySelectorAll('[data-jira-field]').forEach(input=>input.addEventListener('change',()=>{const next=[...root.querySelectorAll('[data-jira-field]:checked')].map(item=>item.dataset.jiraField);if(!next.length){input.checked=true;toast('Cần giữ lại ít nhất một field');return}localStorage.setItem(jiraFieldStorageKey,JSON.stringify(next));renderJiraTasksWithFields()}));
+  root.querySelectorAll('[data-jira-field]').forEach(input=>input.addEventListener('change',()=>{const next=[...root.querySelectorAll('[data-jira-field]:checked')].map(item=>item.dataset.jiraField);if(!next.length){input.checked=true;toast('Cần giữ lại ít nhất một field');return}localStorage.setItem(jiraFieldStorageKey,JSON.stringify(next));renderJiraTasksWithFields();requestAnimationFrame(()=>{const picker=root.querySelector('.jira-field-picker');if(picker)picker.open=true})}));
   root.querySelector('.jira-field-reset')?.addEventListener('click',()=>{localStorage.setItem(jiraFieldStorageKey,JSON.stringify(jiraFieldDefaults));renderJiraTasksWithFields()});
 }
 renderJiraTasks=renderJiraTasksWithFields;
