@@ -3,6 +3,8 @@
 ## 2026-07-28
 
 - Thêm Jira sync pagination và giới hạn số issue đồng bộ.
+- Cập nhật Jira fields: priority, labels, issue type, created và updated.
+- Thêm cấu hình JQL đồng bộ trực tiếp trên màn hình Cài đặt.
 - Sync Jira theo project/kỳ đánh giá bằng JQL tạo từ cấu hình.
 - Snapshot khóa kỳ lưu bộ tiêu chí hiệu lực để tính lại nhất quán.
 - Sửa criteria Leader khi xem phạm vi Tất cả.
