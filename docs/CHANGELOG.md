@@ -1,5 +1,12 @@
 # Changelog bàn giao
 
+## 2026-07-28
+
+- Thêm snapshot bất biến khi kỳ chuyển sang trạng thái `Đã khóa`.
+- Thêm data-quality panel trên dashboard: task chưa map, member thiếu workload và bộ tiêu chí sai tổng.
+- Bổ sung export JSON bên cạnh CSV.
+- Chuẩn hóa workflow chuyển trạng thái theo thứ tự Nháp → Đã gửi → Đã duyệt → Đã khóa.
+
 ## Hiện tại
 
 - Sửa lỗi module `Task Jira` bị trắng do hàm `toggleModules` bị override ở cuối file.
@@ -20,4 +27,3 @@
 - Map task vào member, workload và story point.
 - Thêm module `Task Jira`.
 - Sửa lỗi render module và visibility sau khi thêm nhiều module.
-
