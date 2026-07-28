@@ -30,6 +30,7 @@ const config = {
   doneStatuses: (process.env.JIRA_DONE_STATUSES || 'Done,Closed,Resolved').split(',').map(x => x.trim()).filter(Boolean),
   maxResults: Number(process.env.SYNC_MAX_RESULTS || 100),
   maxIssues: Number(process.env.JIRA_SYNC_MAX_ISSUES || 1000),
+  searchFields: process.env.JIRA_SEARCH_FIELDS || 'summary,assignee,status,priority,labels,issuetype,created,updated',
   defaultJql: process.env.JIRA_DEFAULT_JQL || 'ORDER BY created DESC'
 };
 
@@ -89,6 +90,10 @@ function normalizeIssue(issue) {
     deadline: fields[config.deadlineField] || fields.duedate || null,
     resolvedAt: fields.resolutiondate || null,
     issueType: fields.issuetype?.name || null
+    ,priority: fields.priority?.name || null
+    ,labels: Array.isArray(fields.labels) ? fields.labels : []
+    ,created: fields.created || null
+    ,updated: fields.updated || null
   };
 }
 
@@ -97,7 +102,8 @@ async function searchIssues(query) {
   const jql = query.get('jql') || (project ? `project = "${project}" ${config.defaultJql}` : config.defaultJql);
   const startAt = Number(query.get('startAt') || 0);
   const maxResults = Math.min(Number(query.get('maxResults') || config.maxResults), 1000);
-  const params = new URLSearchParams({ jql, startAt: String(startAt), maxResults: String(maxResults), fields: `summary,assignee,status,${config.storyPointsField},${config.deadlineField},duedate,resolutiondate,issuetype` });
+  const fields = [...new Set(`${config.searchFields},${config.storyPointsField},${config.deadlineField},duedate,resolutiondate`.split(',').map(x => x.trim()).filter(Boolean))].join(',');
+  const params = new URLSearchParams({ jql, startAt: String(startAt), maxResults: String(maxResults), fields });
   const data = await jiraRequest(`/rest/api/2/search?${params}`);
   return { startAt: data.startAt || 0, maxResults: data.maxResults || maxResults, total: data.total || 0, issues: (data.issues || []).map(normalizeIssue) };
 }
