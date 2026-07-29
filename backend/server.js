@@ -249,15 +249,20 @@ async function handle(req, res) {
       const jql = resolvedJql(url.searchParams);
       const startedAt = new Date().toISOString();
       const syncKey = createHash('sha256').update(`${jql}|${startedAt.slice(0, 16)}`).digest('hex');
+      const lockKey = `kpi:sync:${syncKey}`;
       if (redisReady) {
-        const lock = await redis.set(`kpi:sync:${syncKey}`, '1', { NX: true, EX: 900 });
+        const lock = await redis.set(lockKey, '1', { NX: true, EX: 900 });
         if (lock !== 'OK') throw Object.assign(new Error('Một lượt đồng bộ tương tự đang chạy'), { status: 409 });
       }
-      await store.startJiraSync({ syncKey, jql, startedAt });
-      const result = await syncIssues(url.searchParams);
-      const warnings = jiraQualityWarnings(result.issues);
-      await store.finishJiraSync({ syncKey, total: result.issues.length, warnings });
-      return send(res, 200, { syncKey, syncedAt: new Date().toISOString(), ...result, warnings, doneStatuses: config.doneStatuses });
+      try {
+        await store.startJiraSync({ syncKey, jql, startedAt });
+        const result = await syncIssues(url.searchParams);
+        const warnings = jiraQualityWarnings(result.issues);
+        await store.finishJiraSync({ syncKey, total: result.issues.length, warnings });
+        return send(res, 200, { syncKey, syncedAt: new Date().toISOString(), ...result, warnings, doneStatuses: config.doneStatuses });
+      } finally {
+        if (redisReady) await redis.del(lockKey);
+      }
     }
     return send(res, 404, { error: 'Not found' });
   } catch (error) {

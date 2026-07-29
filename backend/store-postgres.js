@@ -67,7 +67,7 @@ export async function createPostgresStore(connectionString = process.env.DATABAS
   await pool.query(schema);
   const queryOne = async (text, values = []) => (await pool.query(text, values)).rows[0] || null;
   const queryAll = async (text, values = []) => (await pool.query(text, values)).rows;
-  const json = value => value === undefined ? null : value;
+  const json = value => value === undefined ? null : JSON.stringify(value);
 
   return {
     pool,
