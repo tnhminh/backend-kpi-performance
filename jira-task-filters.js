@@ -24,7 +24,9 @@
         const member = memberFor(issue);
         const searchText = `${issue.key || ''} ${issue.title || ''} ${issue.member || ''}`.toLowerCase();
         const quality = !Number(issue.storyPoints) ? 'missing-points' : !issue.deadline ? 'missing-deadline' : 'ready';
-        row.hidden = Boolean(query && !searchText.includes(query)) || (status !== 'all' && row.dataset.taskStatus !== status) || Boolean(filters.team && member?.group !== filters.team) || Boolean(filters.assignee && personKey(issue.member) !== personKey(filters.assignee)) || Boolean(filters.type && issue.issueType !== filters.type) || Boolean(filters.priority && issue.priority !== filters.priority) || Boolean(filters.label && !(issue.labels || []).includes(filters.label)) || Boolean(filters.quality && quality !== filters.quality);
+        const hidden = Boolean(query && !searchText.includes(query)) || (status !== 'all' && row.dataset.taskStatus !== status) || Boolean(filters.team && member?.group !== filters.team) || Boolean(filters.assignee && personKey(issue.member) !== personKey(filters.assignee)) || Boolean(filters.type && issue.issueType !== filters.type) || Boolean(filters.priority && issue.priority !== filters.priority) || Boolean(filters.label && !(issue.labels || []).includes(filters.label)) || Boolean(filters.quality && quality !== filters.quality);
+        row.hidden = hidden;
+        row.style.display = hidden ? 'none' : '';
       });
       const visible = [...root.querySelectorAll('.jira-task-row')].filter(row => !row.hidden).length;
       const count = root.querySelector('.jira-task-toolbar > span');
