@@ -49,6 +49,26 @@ test('Jira fields support multi-select, title fallback and color coding', async 
   }
 });
 
+test('Jira task filters wire controls, hide non-matching rows and clear safely', async () => {
+  const filters = await source('jira-task-filters.js');
+  for (const control of ['jiraListTeam', 'jiraListAssignee', 'jiraListType', 'jiraListPriority', 'jiraListLabel', 'jiraListQuality']) {
+    assert.match(filters, new RegExp(`#${control}`), `${control} filter is missing`);
+  }
+  assert.match(filters, /select\.onchange\s*=\s*filterRows/);
+  assert.match(filters, /row\.hidden\s*=\s*hidden/);
+  assert.match(filters, /row\.style\.display\s*=\s*hidden \? 'none' : ''/);
+  assert.match(filters, /count\.textContent\s*=\s*`\$\{visible\}\/\$\{issues\.length\} task`/);
+  assert.match(filters, /clearJiraListFilters/);
+});
+
+test('Jira sync filters build JQL from project, dates, sprint, assignee and advanced clauses', async () => {
+  const filters = await source('jira-filters.js');
+  for (const clause of ['project =', 'updated >=', 'updated <', 'sprint =', 'assignee =', 'filters.extra']) {
+    assert.match(filters, new RegExp(clause.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), `${clause} filter is missing`);
+  }
+  assert.match(filters, /fetch\(`\$\{base\}\/api\/sync\?/);
+});
+
 test('quick guide covers every current product module and routes before highlighting', async () => {
   const tour = await source('tour-fix.js');
   const modules = ['dashboard', 'evaluation', 'comparison', 'tasks', 'jiraTasks', 'timeline', 'demo', 'formula', 'audit', 'criteria', 'settings'];
