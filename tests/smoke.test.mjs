@@ -1,0 +1,58 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+
+const root = new URL('../', import.meta.url);
+const source = async path => readFile(new URL(path, root), 'utf8');
+
+test('all production scripts are loaded in deterministic order', async () => {
+  const html = await source('index.html');
+  const scripts = ['app.js', 'tour-fix.js', 'production-fixes.js', 'jira-mapping.js', 'jira-fields.js', 'motion-effects.js', 'production-suite.js'];
+  let previous = -1;
+  for (const script of scripts) {
+    const index = html.indexOf(`src="${script}"`);
+    assert.ok(index > previous, `${script} must be loaded after the previous script`);
+    previous = index;
+  }
+});
+
+test('production hardening suite includes RBAC, persistence and formula versioning', async () => {
+  const suite = await source('production-suite.js');
+  assert.match(suite, /productionCanAccess/);
+  assert.match(suite, /\/api\/state/);
+  assert.match(suite, /persistFormulaVersion/);
+  assert.match(suite, /renderDataQualityDashboard/);
+  assert.match(suite, /backend-kpi-motion/);
+  assert.match(suite, /completion: \.30, effort: \.35, qualityKpi: \.25, predictability: \.10/);
+});
+
+test('member evaluation slider keeps the original state update handler', async () => {
+  const app = await source('app.js');
+  assert.match(app, /previousInputHandler=input\.oninput/);
+  assert.match(app, /previousInputHandler\?\.\(\)/);
+  assert.match(app, /state\[m\.id\]\[group\]\.scores/);
+});
+
+test('evaluation modal cannot be blocked or dimmed by the backdrop', async () => {
+  const css = await source('styles.css');
+  assert.match(css, /\.editor-modal-backdrop\{pointer-events:none!important;background:transparent!important;opacity:0!important\}/);
+  assert.match(css, /\.editor-card\.editor-modal-open\{pointer-events:auto!important/);
+});
+
+test('Jira fields support multi-select, title fallback and color coding', async () => {
+  const fields = await source('jira-fields.js');
+  const css = await source('styles.css');
+  assert.match(fields, /type="checkbox" data-jira-field/);
+  assert.match(fields, /task\.title\|\|task\.summary/);
+  for (const name of ['key', 'summary', 'member', 'issueType', 'status', 'priority', 'labels', 'storyPoints', 'deadline']) {
+    assert.ok(css.includes(`.jira-field-${name}`), `missing color style for ${name}`);
+  }
+});
+
+test('backend and frontend entrypoints exist', async () => {
+  const files = ['backend/server.js', 'backend/package.json', 'app.js', 'styles.css'];
+  for (const file of files) {
+    const content = await readFile(new URL(file, root), 'utf8');
+    assert.ok(content.length > 100, `${file} should not be empty`);
+  }
+});

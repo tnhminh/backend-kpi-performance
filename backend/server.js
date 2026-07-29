@@ -1,6 +1,8 @@
 import http from 'node:http';
 import { readFileSync, existsSync } from 'node:fs';
 import { URL } from 'node:url';
+import { createHash } from 'node:crypto';
+import { createStore } from './store.js';
 
 function loadEnvFile() {
   const path = new URL('./.env', import.meta.url);
@@ -31,8 +33,10 @@ const config = {
   maxResults: Number(process.env.SYNC_MAX_RESULTS || 100),
   maxIssues: Number(process.env.JIRA_SYNC_MAX_ISSUES || 1000),
   searchFields: process.env.JIRA_SEARCH_FIELDS || 'summary,assignee,status,priority,labels,issuetype,created,updated',
-  defaultJql: process.env.JIRA_DEFAULT_JQL || 'ORDER BY created DESC'
+  defaultJql: process.env.JIRA_DEFAULT_JQL || 'ORDER BY created DESC',
+  databasePath: process.env.DB_PATH || undefined
 };
+const store = createStore(config.databasePath);
 
 function send(res, status, body) {
   const payload = JSON.stringify(body);
@@ -40,9 +44,30 @@ function send(res, status, body) {
     'content-type': 'application/json; charset=utf-8',
     'access-control-allow-origin': '*',
     'access-control-allow-methods': 'GET,POST,OPTIONS',
-    'access-control-allow-headers': 'content-type'
+    'access-control-allow-headers': 'content-type,x-user-id,x-user-role,authorization'
   });
   res.end(payload);
+}
+
+function actorFrom(req) {
+  const role = String(req.headers['x-user-role'] || 'Admin');
+  return {
+    id: String(req.headers['x-user-id'] || 'demo-admin'),
+    role: ['Member', 'Leader', 'Admin'].includes(role) ? role : 'Member'
+  };
+}
+
+function requireRole(actor, allowed) {
+  if (!allowed.includes(actor.role)) {
+    const error = new Error(`Vai trò ${actor.role} không có quyền thực hiện thao tác này`);
+    error.status = 403;
+    throw error;
+  }
+}
+
+function resolvedJql(query) {
+  const project = query.get('project') || config.projectKey;
+  return query.get('jql') || (project ? `project = "${project}" ${config.defaultJql}` : config.defaultJql);
 }
 
 function authHeaders() {
@@ -98,14 +123,26 @@ function normalizeIssue(issue) {
 }
 
 async function searchIssues(query) {
-  const project = query.get('project') || config.projectKey;
-  const jql = query.get('jql') || (project ? `project = "${project}" ${config.defaultJql}` : config.defaultJql);
+  const jql = resolvedJql(query);
   const startAt = Number(query.get('startAt') || 0);
   const maxResults = Math.min(Number(query.get('maxResults') || config.maxResults), 1000);
   const fields = [...new Set(`${config.searchFields},${config.storyPointsField},${config.deadlineField},duedate,resolutiondate`.split(',').map(x => x.trim()).filter(Boolean))].join(',');
   const params = new URLSearchParams({ jql, startAt: String(startAt), maxResults: String(maxResults), fields });
   const data = await jiraRequest(`/rest/api/2/search?${params}`);
   return { startAt: data.startAt || 0, maxResults: data.maxResults || maxResults, total: data.total || 0, issues: (data.issues || []).map(normalizeIssue) };
+}
+
+function jiraQualityWarnings(issues) {
+  const rules = [
+    ['missing_assignee', 'Task chưa có assignee', issue => !issue.accountId],
+    ['missing_story_points', 'Task chưa có Story Point', issue => !Number(issue.storyPoints)],
+    ['missing_deadline', 'Task chưa có deadline', issue => !issue.deadline],
+    ['missing_labels', 'Task chưa có label', issue => !(issue.labels || []).length]
+  ];
+  return rules.map(([code, label, match]) => {
+    const keys = issues.filter(match).map(issue => issue.key);
+    return { code, label, count: keys.length, keys: keys.slice(0, 50) };
+  }).filter(rule => rule.count);
 }
 
 async function syncIssues(query) {
@@ -138,8 +175,46 @@ async function readJson(req) {
 async function handle(req, res) {
   if (req.method === 'OPTIONS') return send(res, 204, {});
   const url = new URL(req.url, `http://${req.headers.host}`);
+  const actor = actorFrom(req);
   try {
-    if (url.pathname === '/api/health') return send(res, 200, { ok: true, jiraConfigured: Boolean(config.baseUrl && config.token), projectKey: config.projectKey });
+    if (url.pathname === '/api/health') return send(res, 200, { ok: true, jiraConfigured: Boolean(config.baseUrl && config.token), projectKey: config.projectKey, storage: store.health() });
+    if (url.pathname === '/api/state' && req.method === 'GET') {
+      const period = url.searchParams.get('period');
+      if (!period) return send(res, 400, { error: 'Thiếu period' });
+      return send(res, 200, { period: store.getPeriod(period) });
+    }
+    if (url.pathname === '/api/state' && (req.method === 'POST' || req.method === 'PUT')) {
+      const body = await readJson(req);
+      if (!body.period) return send(res, 400, { error: 'Thiếu period' });
+      let nextState = body.state || {};
+      if (actor.role === 'Member') {
+        const current = store.getPeriod(body.period)?.state || {};
+        nextState = { ...current, [actor.id]: nextState[actor.id] || current[actor.id] || {} };
+      }
+      return send(res, 200, { period: store.savePeriod({ ...body, state: nextState, actor }) });
+    }
+    if (url.pathname === '/api/users' && req.method === 'GET') {
+      requireRole(actor, ['Leader', 'Admin']);
+      return send(res, 200, { users: store.listUsers() });
+    }
+    if (url.pathname === '/api/users' && req.method === 'POST') {
+      requireRole(actor, ['Admin']);
+      return send(res, 200, { user: store.upsertUser(await readJson(req)) });
+    }
+    if (url.pathname === '/api/audit' && req.method === 'GET') {
+      requireRole(actor, ['Leader', 'Admin']);
+      return send(res, 200, { logs: store.listAudit(url.searchParams.get('period'), Math.min(Number(url.searchParams.get('limit') || 200), 1000)) });
+    }
+    if (url.pathname === '/api/formulas' && req.method === 'GET') {
+      return send(res, 200, { versions: store.listFormulaVersions() });
+    }
+    if (url.pathname === '/api/formulas' && req.method === 'POST') {
+      requireRole(actor, ['Admin']);
+      const body = await readJson(req);
+      const checksum = createHash('sha256').update(JSON.stringify(body.formula || {})).digest('hex');
+      const version = body.version || `formula-${new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14)}`;
+      return send(res, 200, { formula: store.createFormulaVersion({ version, formula: body.formula || {}, checksum, actor }) });
+    }
     if (url.pathname === '/api/config' && req.method === 'POST') {
       const body = await readJson(req);
       if (body.baseUrl) config.baseUrl = String(body.baseUrl).replace(/\/$/, '');
@@ -150,13 +225,24 @@ async function handle(req, res) {
     }
     if (url.pathname === '/api/jira/test') return send(res, 200, { ok: true, jira: await jiraRequest('/rest/api/2/myself') });
     if (url.pathname === '/api/jira/issues') return send(res, 200, await searchIssues(url.searchParams));
+    if (url.pathname === '/api/jira/sync-runs') {
+      requireRole(actor, ['Leader', 'Admin']);
+      return send(res, 200, { runs: store.listJiraSyncRuns(Math.min(Number(url.searchParams.get('limit') || 30), 200)) });
+    }
     if (url.pathname === '/api/sync') {
+      requireRole(actor, ['Leader', 'Admin']);
+      const jql = resolvedJql(url.searchParams);
+      const startedAt = new Date().toISOString();
+      const syncKey = createHash('sha256').update(`${jql}|${startedAt.slice(0, 16)}`).digest('hex');
+      store.startJiraSync({ syncKey, jql, startedAt });
       const result = await syncIssues(url.searchParams);
-      return send(res, 200, { syncedAt: new Date().toISOString(), ...result, doneStatuses: config.doneStatuses });
+      const warnings = jiraQualityWarnings(result.issues);
+      store.finishJiraSync({ syncKey, total: result.issues.length, warnings });
+      return send(res, 200, { syncKey, syncedAt: new Date().toISOString(), ...result, warnings, doneStatuses: config.doneStatuses });
     }
     return send(res, 404, { error: 'Not found' });
   } catch (error) {
-    return send(res, 500, { ok: false, error: error.message });
+    return send(res, error.status || 500, { ok: false, error: error.message });
   }
 }
 

@@ -1,2 +1,6 @@
 backend/.env
+backend/data/
+backend/*.sqlite
+backend/*.sqlite-shm
+backend/*.sqlite-wal
 work/*.tar.gz
