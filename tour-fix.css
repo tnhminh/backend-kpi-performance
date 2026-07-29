@@ -1,1 +1,8 @@
-.tour-highlight{outline:3px solid rgba(40,100,220,.85);outline-offset:4px;position:relative;z-index:101;box-shadow:0 0 0 7px rgba(40,100,220,.12)}
+.tour-backdrop{z-index:9990!important}
+.tour-popover{z-index:2;border:1px solid rgba(54,103,224,.18);box-shadow:0 24px 80px rgba(14,31,68,.24),0 0 0 1px rgba(255,255,255,.8);max-height:calc(100vh - 32px);overflow:auto;transition:left .22s ease,top .22s ease}
+.tour-popover::before{content:"";display:block;width:42px;height:4px;border-radius:99px;background:linear-gradient(90deg,#3567e5,#66a4ff);margin-bottom:16px}
+.tour-kicker{line-height:1.45}
+.tour-popover p{font-size:14px}
+.tour-highlight{outline:3px solid rgba(40,100,220,.9)!important;outline-offset:5px;position:relative;z-index:19!important;box-shadow:0 0 0 9px rgba(40,100,220,.12),0 14px 40px rgba(37,81,184,.12);border-radius:12px}
+.motion-off .tour-popover{transition:none}
+@media(max-width:700px){.tour-popover{width:calc(100% - 24px)!important;left:12px!important;right:auto!important;top:auto!important;bottom:12px!important;max-height:48vh}.tour-actions{flex-wrap:wrap}.tour-actions #tourPrev{margin-right:0}.tour-highlight{outline-offset:2px}}

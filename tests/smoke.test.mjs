@@ -49,6 +49,19 @@ test('Jira fields support multi-select, title fallback and color coding', async 
   }
 });
 
+test('quick guide covers every current product module and routes before highlighting', async () => {
+  const tour = await source('tour-fix.js');
+  const modules = ['dashboard', 'evaluation', 'comparison', 'tasks', 'jiraTasks', 'timeline', 'demo', 'formula', 'audit', 'criteria', 'settings'];
+  for (const module of modules) {
+    assert.ok(tour.includes(`module: '${module}'`), `quick guide is missing ${module}`);
+  }
+  assert.match(tour, /setModule\(step\.module\)/);
+  assert.match(tour, /BƯỚC \$\{tourIndex \+ 1\} \/ \$\{guidedTourSteps\.length\}/);
+  assert.match(tour, /prefers-reduced-motion/);
+  assert.match(tour, /event\.key === 'Escape'/);
+  assert.match(tour, /tourIndex < guidedTourSteps\.length - 1/);
+});
+
 test('backend and frontend entrypoints exist', async () => {
   const files = ['backend/server.js', 'backend/package.json', 'app.js', 'styles.css'];
   for (const file of files) {
