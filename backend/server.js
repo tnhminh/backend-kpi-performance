@@ -240,6 +240,7 @@ async function handle(req, res) {
     }
     if (url.pathname === '/api/jira/test') return send(res, 200, { ok: true, jira: await jiraRequest('/rest/api/2/myself') });
     if (url.pathname === '/api/jira/issues') return send(res, 200, await searchIssues(url.searchParams));
+    if (url.pathname === '/api/jira/stored-issues') return send(res, 200, { issues: await store.listJiraIssues(Math.min(Number(url.searchParams.get('limit') || 10000), 10000)) });
     if (url.pathname === '/api/jira/sync-runs') {
       requireRole(actor, ['Leader', 'Admin']);
       return send(res, 200, { runs: await store.listJiraSyncRuns(Math.min(Number(url.searchParams.get('limit') || 30), 200)) });
@@ -258,6 +259,7 @@ async function handle(req, res) {
         await store.startJiraSync({ syncKey, jql, startedAt });
         const result = await syncIssues(url.searchParams);
         const warnings = jiraQualityWarnings(result.issues);
+        await store.upsertJiraIssues(result.issues, syncKey);
         await store.finishJiraSync({ syncKey, total: result.issues.length, warnings });
         return send(res, 200, { syncKey, syncedAt: new Date().toISOString(), ...result, warnings, doneStatuses: config.doneStatuses });
       } finally {

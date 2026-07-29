@@ -58,6 +58,13 @@ export function createStore(databasePath = process.env.DB_PATH || defaultPath) {
       completed_at TEXT,
       status TEXT NOT NULL DEFAULT 'running'
     );
+    CREATE TABLE IF NOT EXISTS jira_issues (
+      issue_key TEXT PRIMARY KEY,
+      issue_json TEXT NOT NULL,
+      last_sync_key TEXT,
+      last_synced_at TEXT,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
   `);
 
   const json = value => JSON.stringify(value ?? null);
@@ -139,6 +146,22 @@ export function createStore(databasePath = process.env.DB_PATH || defaultPath) {
     listJiraSyncRuns(limit = 30) {
       return db.prepare('SELECT * FROM jira_sync_runs ORDER BY id DESC LIMIT ?').all(limit)
         .map(row => ({ ...row, warnings: parse(row.warnings_json, []) }));
+    },
+    upsertJiraIssues(issues, syncKey, syncedAt = new Date().toISOString()) {
+      const statement = db.prepare(`INSERT INTO jira_issues(issue_key,issue_json,last_sync_key,last_synced_at,updated_at)
+        VALUES(?,?,?,?,CURRENT_TIMESTAMP)
+        ON CONFLICT(issue_key) DO UPDATE SET issue_json=excluded.issue_json,last_sync_key=excluded.last_sync_key,last_synced_at=excluded.last_synced_at,updated_at=CURRENT_TIMESTAMP`);
+      const transaction = db.prepare('BEGIN');
+      transaction.run();
+      try { for (const issue of issues || []) statement.run(issue.key, json(issue), syncKey, syncedAt); db.prepare('COMMIT').run(); }
+      catch (error) { db.prepare('ROLLBACK').run(); throw error; }
+      return issues?.length || 0;
+    },
+    listJiraIssues(limit = 10000) {
+      const latest = db.prepare("SELECT sync_key FROM jira_sync_runs WHERE status='completed' ORDER BY completed_at DESC, id DESC LIMIT 1").get();
+      if (!latest) return [];
+      return db.prepare('SELECT issue_json FROM jira_issues WHERE last_sync_key=? ORDER BY issue_key LIMIT ?').all(latest.sync_key, limit)
+        .map(row => parse(row.issue_json, {}));
     }
   };
 }

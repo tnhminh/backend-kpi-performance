@@ -71,6 +71,17 @@
       if (button) { button.disabled = false; button.textContent = 'Đồng bộ Jira Data Center'; }
     }
   };
+  const loadStoredJiraIssues = async () => {
+    const base = (localStorage.getItem('backend-kpi-api-base') || location.origin).replace(/\/$/, '');
+    try {
+      const response = await fetch(`${base}/api/jira/stored-issues`);
+      const data = await response.json();
+      if (!response.ok || data.error || !Array.isArray(data.issues) || !data.issues.length) return;
+      state.jiraIssues = data.issues;
+      localStorage.setItem(key(), JSON.stringify(state));
+      render();
+    } catch {}
+  };
   const baseRenderSettings = renderSettings;
   renderSettings = function renderSettingsWithJiraFilters() {
     baseRenderSettings();
@@ -91,4 +102,5 @@
   style.textContent = '.jira-filter-panel{margin-top:12px;padding:14px;border:1px solid #d8e1f2;border-radius:12px;background:#fff;display:grid;gap:8px}.jira-filter-panel>span,.jira-filter-panel small{color:#6b7b9c}.jira-filter-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.jira-filter-panel label{display:grid;gap:5px;font-size:12px;color:#536789}.jira-filter-panel input{min-width:0}@media(max-width:760px){.jira-filter-grid{grid-template-columns:1fr}}';
   document.head.appendChild(style);
   renderSettings();
+  void loadStoredJiraIssues();
 })();

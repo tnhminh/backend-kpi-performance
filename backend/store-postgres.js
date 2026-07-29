@@ -51,8 +51,27 @@ CREATE TABLE IF NOT EXISTS jira_sync_runs (
   completed_at TIMESTAMPTZ,
   status TEXT NOT NULL DEFAULT 'running'
 );
+CREATE TABLE IF NOT EXISTS jira_issues (
+  issue_key TEXT PRIMARY KEY,
+  member TEXT,
+  account_id TEXT,
+  title TEXT NOT NULL DEFAULT '',
+  status TEXT,
+  done BOOLEAN NOT NULL DEFAULT FALSE,
+  story_points NUMERIC NOT NULL DEFAULT 0,
+  deadline TEXT,
+  issue_type TEXT,
+  priority TEXT,
+  labels_json JSONB NOT NULL DEFAULT '[]'::jsonb,
+  issue_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+  last_sync_key TEXT,
+  last_synced_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 CREATE INDEX IF NOT EXISTS audit_logs_period_created_idx ON audit_logs(period, created_at DESC);
 CREATE INDEX IF NOT EXISTS jira_sync_runs_created_idx ON jira_sync_runs(started_at DESC);
+CREATE INDEX IF NOT EXISTS jira_issues_last_sync_idx ON jira_issues(last_sync_key);
 `;
 
 const parse = (value, fallback) => {
@@ -107,6 +126,28 @@ export async function createPostgresStore(connectionString = process.env.DATABAS
     listFormulaVersions: async () => (await queryAll('SELECT * FROM formula_versions ORDER BY id DESC')).map(row => ({ ...row, formula: parse(row.formula_json, {}) })),
     startJiraSync: async ({ syncKey, jql, startedAt }) => { await pool.query(`INSERT INTO jira_sync_runs(sync_key,jql,started_at,status) VALUES($1,$2,$3,'running') ON CONFLICT(sync_key) DO NOTHING`, [syncKey, jql, startedAt]); return queryOne('SELECT * FROM jira_sync_runs WHERE sync_key=$1', [syncKey]); },
     finishJiraSync: async ({ syncKey, total, mapped = 0, warnings = [], status = 'completed' }) => { await pool.query(`UPDATE jira_sync_runs SET total=$1,mapped=$2,warnings_json=$3,status=$4,completed_at=NOW() WHERE sync_key=$5`, [total, mapped, json(warnings), status, syncKey]); return queryOne('SELECT * FROM jira_sync_runs WHERE sync_key=$1', [syncKey]); },
-    listJiraSyncRuns: async (limit = 30) => (await queryAll('SELECT * FROM jira_sync_runs ORDER BY id DESC LIMIT $1', [limit])).map(row => ({ ...row, warnings: parse(row.warnings_json, []) }))
+    listJiraSyncRuns: async (limit = 30) => (await queryAll('SELECT * FROM jira_sync_runs ORDER BY id DESC LIMIT $1', [limit])).map(row => ({ ...row, warnings: parse(row.warnings_json, []) })),
+    upsertJiraIssues: async (issues, syncKey, syncedAt = new Date().toISOString()) => {
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        for (const issue of issues || []) {
+          await client.query(`INSERT INTO jira_issues(issue_key,member,account_id,title,status,done,story_points,deadline,issue_type,priority,labels_json,issue_json,last_sync_key,last_synced_at)
+            VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+            ON CONFLICT(issue_key) DO UPDATE SET member=EXCLUDED.member,account_id=EXCLUDED.account_id,title=EXCLUDED.title,status=EXCLUDED.status,done=EXCLUDED.done,story_points=EXCLUDED.story_points,deadline=EXCLUDED.deadline,issue_type=EXCLUDED.issue_type,priority=EXCLUDED.priority,labels_json=EXCLUDED.labels_json,issue_json=EXCLUDED.issue_json,last_sync_key=EXCLUDED.last_sync_key,last_synced_at=EXCLUDED.last_synced_at,updated_at=NOW()`,
+            [issue.key, issue.member || null, issue.accountId || null, issue.title || '', issue.status || null, Boolean(issue.done), Number(issue.storyPoints || 0), issue.deadline || null, issue.issueType || null, issue.priority || null, json(issue.labels || []), json(issue), syncKey, syncedAt]);
+        }
+        await client.query('COMMIT');
+      } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+      } finally { client.release(); }
+      return issues?.length || 0;
+    },
+    listJiraIssues: async (limit = 10000) => {
+      const latest = await queryOne("SELECT sync_key FROM jira_sync_runs WHERE status='completed' ORDER BY completed_at DESC NULLS LAST, id DESC LIMIT 1");
+      if (!latest) return [];
+      return (await queryAll('SELECT issue_json FROM jira_issues WHERE last_sync_key=$1 ORDER BY issue_key LIMIT $2', [latest.sync_key, limit])).map(row => parse(row.issue_json, {}));
+    }
   };
 }

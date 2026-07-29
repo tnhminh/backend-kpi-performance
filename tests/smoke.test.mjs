@@ -71,6 +71,20 @@ test('Jira sync filters build JQL from project, dates, sprint, assignee and adva
   assert.match(filters, /fetch\(`\$\{base\}\/api\/sync\?/);
 });
 
+test('Jira sync persists issues and reloads the latest stored snapshot', async () => {
+  const server = await source('backend/server.js');
+  const postgres = await source('backend/store-postgres.js');
+  const sqlite = await source('backend/store.js');
+  const filters = await source('jira-filters.js');
+  assert.match(server, /store\.upsertJiraIssues\(result\.issues, syncKey\)/);
+  assert.match(server, /\/api\/jira\/stored-issues/);
+  assert.match(postgres, /CREATE TABLE IF NOT EXISTS jira_issues/);
+  assert.match(postgres, /ON CONFLICT\(issue_key\) DO UPDATE/);
+  assert.match(sqlite, /CREATE TABLE IF NOT EXISTS jira_issues/);
+  assert.match(filters, /\/api\/jira\/stored-issues/);
+  assert.match(filters, /state\.jiraIssues = data\.issues/);
+});
+
 test('quick guide covers every current product module and routes before highlighting', async () => {
   const tour = await source('tour-fix.js');
   const modules = ['dashboard', 'evaluation', 'comparison', 'tasks', 'jiraTasks', 'timeline', 'demo', 'formula', 'audit', 'criteria', 'settings'];
