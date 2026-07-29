@@ -2,7 +2,6 @@ import http from 'node:http';
 import { readFileSync, existsSync } from 'node:fs';
 import { URL } from 'node:url';
 import { createHash } from 'node:crypto';
-import { createStore } from './store.js';
 import { createPostgresStore } from './store-postgres.js';
 import { createClient } from 'redis';
 
@@ -40,7 +39,7 @@ const config = {
 };
 const store = process.env.DB_DRIVER === 'postgres'
   ? await createPostgresStore(process.env.DATABASE_URL)
-  : createStore(config.databasePath);
+  : (await import('./store.js')).createStore(config.databasePath);
 const redis = createClient({ url: process.env.REDIS_URL || 'redis://localhost:6379' });
 let redisReady = false;
 redis.on('error', error => console.error(`Redis error: ${error.message}`));
