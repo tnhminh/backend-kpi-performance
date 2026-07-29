@@ -22,9 +22,13 @@
         const key = row.querySelector('.jira-task-key b')?.textContent.trim();
         const issue = issues.find(item => item.key === key) || {};
         const member = memberFor(issue);
+        const displayedAssignee = row.querySelector('.jira-task-title span')?.textContent.split(' · ')[0].trim() || '';
+        const issueAssigneeKey = personKey(issue.member || displayedAssignee);
+        const selectedAssigneeKey = personKey(filters.assignee);
         const searchText = `${issue.key || ''} ${issue.title || ''} ${issue.member || ''}`.toLowerCase();
         const quality = !Number(issue.storyPoints) ? 'missing-points' : !issue.deadline ? 'missing-deadline' : 'ready';
-        const hidden = Boolean(query && !searchText.includes(query)) || (status !== 'all' && row.dataset.taskStatus !== status) || Boolean(filters.team && member?.group !== filters.team) || Boolean(filters.assignee && personKey(issue.member) !== personKey(filters.assignee)) || Boolean(filters.type && issue.issueType !== filters.type) || Boolean(filters.priority && issue.priority !== filters.priority) || Boolean(filters.label && !(issue.labels || []).includes(filters.label)) || Boolean(filters.quality && quality !== filters.quality);
+        const assigneeMatches = !filters.assignee || issueAssigneeKey === selectedAssigneeKey || member?.id === filters.assignee || issue.accountId === filters.assignee;
+        const hidden = Boolean(query && !searchText.includes(query)) || (status !== 'all' && row.dataset.taskStatus !== status) || Boolean(filters.team && member?.group !== filters.team) || !assigneeMatches || Boolean(filters.type && issue.issueType !== filters.type) || Boolean(filters.priority && issue.priority !== filters.priority) || Boolean(filters.label && !(issue.labels || []).includes(filters.label)) || Boolean(filters.quality && quality !== filters.quality);
         row.hidden = hidden;
         row.style.display = hidden ? 'none' : '';
       });

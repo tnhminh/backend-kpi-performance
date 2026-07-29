@@ -57,6 +57,8 @@ test('Jira task filters wire controls, hide non-matching rows and clear safely',
   assert.match(filters, /select\.onchange\s*=\s*filterRows/);
   assert.match(filters, /row\.hidden\s*=\s*hidden/);
   assert.match(filters, /row\.style\.display\s*=\s*hidden \? 'none' : ''/);
+  assert.match(filters, /displayedAssignee/);
+  assert.match(filters, /assigneeMatches/);
   assert.match(filters, /count\.textContent\s*=\s*`\$\{visible\}\/\$\{issues\.length\} task`/);
   assert.match(filters, /clearJiraListFilters/);
 });
