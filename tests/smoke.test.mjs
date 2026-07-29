@@ -7,7 +7,7 @@ const source = async path => readFile(new URL(path, root), 'utf8');
 
 test('all production scripts are loaded in deterministic order', async () => {
   const html = await source('index.html');
-  const scripts = ['app.js', 'tour-fix.js', 'production-fixes.js', 'jira-mapping.js', 'jira-fields.js', 'motion-effects.js', 'production-suite.js', 'jira-filters.js'];
+  const scripts = ['app.js', 'tour-fix.js', 'production-fixes.js', 'jira-mapping.js', 'jira-fields.js', 'motion-effects.js', 'production-suite.js', 'jira-filters.js', 'jira-task-filters.js'];
   let previous = -1;
   for (const script of scripts) {
     const index = html.indexOf(`src="${script}"`);
