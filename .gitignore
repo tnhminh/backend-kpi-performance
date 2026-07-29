@@ -1,6 +1,11 @@
 backend/.env
+.env
 backend/data/
 backend/*.sqlite
 backend/*.sqlite-shm
 backend/*.sqlite-wal
+backend/node_modules/
+node_modules/
+backups/
+*.log
 work/*.tar.gz

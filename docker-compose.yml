@@ -1,0 +1,74 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-backend_kpi}
+      POSTGRES_USER: ${POSTGRES_USER:-backend_kpi}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-backend_kpi} -d ${POSTGRES_DB:-backend_kpi}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  backend:
+    build:
+      context: .
+      dockerfile: infra/Dockerfile.backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 8788
+      DB_DRIVER: postgres
+      DATABASE_URL: postgresql://${POSTGRES_USER:-backend_kpi}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-backend_kpi}
+      REDIS_URL: redis://redis:6379
+      JIRA_BASE_URL: ${JIRA_BASE_URL:-}
+      JIRA_PROJECT_KEY: ${JIRA_PROJECT_KEY:-}
+      JIRA_AUTH_TYPE: ${JIRA_AUTH_TYPE:-pat}
+      JIRA_TOKEN: ${JIRA_TOKEN:-}
+      JIRA_USER: ${JIRA_USER:-}
+      JIRA_DEFAULT_JQL: ${JIRA_DEFAULT_JQL:-ORDER BY created DESC}
+      JIRA_STORY_POINTS_FIELD: ${JIRA_STORY_POINTS_FIELD:-customfield_10016}
+      JIRA_DEADLINE_FIELD: ${JIRA_DEADLINE_FIELD:-duedate}
+      JIRA_DONE_STATUSES: ${JIRA_DONE_STATUSES:-Done,Closed,Resolved}
+      JIRA_SYNC_MAX_ISSUES: ${JIRA_SYNC_MAX_ISSUES:-1000}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8788/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  web:
+    build:
+      context: .
+      dockerfile: infra/Dockerfile.web
+    restart: unless-stopped
+    ports:
+      - "${HTTP_PORT:-8080}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  redis_data:

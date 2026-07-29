@@ -3,6 +3,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "start:postgres": "DB_DRIVER=postgres node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "pg": "^8.16.3",
+    "redis": "^5.0.1"
   }
 }

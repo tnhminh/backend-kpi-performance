@@ -1,0 +1,12 @@
+.git
+.env
+backend/.env
+backend/data
+node_modules
+work
+outputs
+dist
+tests
+docs
+*.sqlite
+*.log

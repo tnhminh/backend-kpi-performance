@@ -3,6 +3,8 @@ import { readFileSync, existsSync } from 'node:fs';
 import { URL } from 'node:url';
 import { createHash } from 'node:crypto';
 import { createStore } from './store.js';
+import { createPostgresStore } from './store-postgres.js';
+import { createClient } from 'redis';
 
 function loadEnvFile() {
   const path = new URL('./.env', import.meta.url);
@@ -36,7 +38,21 @@ const config = {
   defaultJql: process.env.JIRA_DEFAULT_JQL || 'ORDER BY created DESC',
   databasePath: process.env.DB_PATH || undefined
 };
-const store = createStore(config.databasePath);
+const store = process.env.DB_DRIVER === 'postgres'
+  ? await createPostgresStore(process.env.DATABASE_URL)
+  : createStore(config.databasePath);
+const redis = createClient({ url: process.env.REDIS_URL || 'redis://localhost:6379' });
+let redisReady = false;
+redis.on('error', error => console.error(`Redis error: ${error.message}`));
+if (process.env.REDIS_URL) {
+  try {
+    await Promise.race([
+      redis.connect(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('connection timeout')), 750))
+    ]);
+    redisReady = true;
+  } catch (error) { console.warn(`Redis unavailable: ${error.message}`); }
+}
 
 function send(res, status, body) {
   const payload = JSON.stringify(body);
@@ -177,43 +193,43 @@ async function handle(req, res) {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const actor = actorFrom(req);
   try {
-    if (url.pathname === '/api/health') return send(res, 200, { ok: true, jiraConfigured: Boolean(config.baseUrl && config.token), projectKey: config.projectKey, storage: store.health() });
+    if (url.pathname === '/api/health') return send(res, 200, { ok: true, jiraConfigured: Boolean(config.baseUrl && config.token), projectKey: config.projectKey, storage: await store.health(), redis: { ok: redisReady } });
     if (url.pathname === '/api/state' && req.method === 'GET') {
       const period = url.searchParams.get('period');
       if (!period) return send(res, 400, { error: 'Thiếu period' });
-      return send(res, 200, { period: store.getPeriod(period) });
+      return send(res, 200, { period: await store.getPeriod(period) });
     }
     if (url.pathname === '/api/state' && (req.method === 'POST' || req.method === 'PUT')) {
       const body = await readJson(req);
       if (!body.period) return send(res, 400, { error: 'Thiếu period' });
       let nextState = body.state || {};
       if (actor.role === 'Member') {
-        const current = store.getPeriod(body.period)?.state || {};
+        const current = (await store.getPeriod(body.period))?.state || {};
         nextState = { ...current, [actor.id]: nextState[actor.id] || current[actor.id] || {} };
       }
-      return send(res, 200, { period: store.savePeriod({ ...body, state: nextState, actor }) });
+      return send(res, 200, { period: await store.savePeriod({ ...body, state: nextState, actor }) });
     }
     if (url.pathname === '/api/users' && req.method === 'GET') {
       requireRole(actor, ['Leader', 'Admin']);
-      return send(res, 200, { users: store.listUsers() });
+      return send(res, 200, { users: await store.listUsers() });
     }
     if (url.pathname === '/api/users' && req.method === 'POST') {
       requireRole(actor, ['Admin']);
-      return send(res, 200, { user: store.upsertUser(await readJson(req)) });
+      return send(res, 200, { user: await store.upsertUser(await readJson(req)) });
     }
     if (url.pathname === '/api/audit' && req.method === 'GET') {
       requireRole(actor, ['Leader', 'Admin']);
-      return send(res, 200, { logs: store.listAudit(url.searchParams.get('period'), Math.min(Number(url.searchParams.get('limit') || 200), 1000)) });
+      return send(res, 200, { logs: await store.listAudit(url.searchParams.get('period'), Math.min(Number(url.searchParams.get('limit') || 200), 1000)) });
     }
     if (url.pathname === '/api/formulas' && req.method === 'GET') {
-      return send(res, 200, { versions: store.listFormulaVersions() });
+      return send(res, 200, { versions: await store.listFormulaVersions() });
     }
     if (url.pathname === '/api/formulas' && req.method === 'POST') {
       requireRole(actor, ['Admin']);
       const body = await readJson(req);
       const checksum = createHash('sha256').update(JSON.stringify(body.formula || {})).digest('hex');
       const version = body.version || `formula-${new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14)}`;
-      return send(res, 200, { formula: store.createFormulaVersion({ version, formula: body.formula || {}, checksum, actor }) });
+      return send(res, 200, { formula: await store.createFormulaVersion({ version, formula: body.formula || {}, checksum, actor }) });
     }
     if (url.pathname === '/api/config' && req.method === 'POST') {
       const body = await readJson(req);
@@ -227,17 +243,21 @@ async function handle(req, res) {
     if (url.pathname === '/api/jira/issues') return send(res, 200, await searchIssues(url.searchParams));
     if (url.pathname === '/api/jira/sync-runs') {
       requireRole(actor, ['Leader', 'Admin']);
-      return send(res, 200, { runs: store.listJiraSyncRuns(Math.min(Number(url.searchParams.get('limit') || 30), 200)) });
+      return send(res, 200, { runs: await store.listJiraSyncRuns(Math.min(Number(url.searchParams.get('limit') || 30), 200)) });
     }
     if (url.pathname === '/api/sync') {
       requireRole(actor, ['Leader', 'Admin']);
       const jql = resolvedJql(url.searchParams);
       const startedAt = new Date().toISOString();
       const syncKey = createHash('sha256').update(`${jql}|${startedAt.slice(0, 16)}`).digest('hex');
-      store.startJiraSync({ syncKey, jql, startedAt });
+      if (redisReady) {
+        const lock = await redis.set(`kpi:sync:${syncKey}`, '1', { NX: true, EX: 900 });
+        if (lock !== 'OK') throw Object.assign(new Error('Một lượt đồng bộ tương tự đang chạy'), { status: 409 });
+      }
+      await store.startJiraSync({ syncKey, jql, startedAt });
       const result = await syncIssues(url.searchParams);
       const warnings = jiraQualityWarnings(result.issues);
-      store.finishJiraSync({ syncKey, total: result.issues.length, warnings });
+      await store.finishJiraSync({ syncKey, total: result.issues.length, warnings });
       return send(res, 200, { syncKey, syncedAt: new Date().toISOString(), ...result, warnings, doneStatuses: config.doneStatuses });
     }
     return send(res, 404, { error: 'Not found' });
@@ -249,3 +269,12 @@ async function handle(req, res) {
 http.createServer(handle).listen(config.port, () => {
   console.log(`Backend KPI Jira connector listening on http://localhost:${config.port}`);
 });
+
+const shutdown = async signal => {
+  console.log(`Shutting down on ${signal}`);
+  try { if (redisReady) await redis.quit(); } catch {}
+  try { await store.close?.(); } catch {}
+  process.exit(0);
+};
+process.once('SIGTERM', () => shutdown('SIGTERM'));
+process.once('SIGINT', () => shutdown('SIGINT'));
