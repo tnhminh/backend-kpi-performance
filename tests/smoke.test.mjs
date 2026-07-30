@@ -139,8 +139,9 @@ test('Sites worker exposes Jira sync, stored issues and D1 persistence', async (
   const migration = await source('drizzle/0000_public_backend.sql');
   assert.equal(hosting.d1, 'DB');
   assert.match(worker, /\/api\/jira\/stored-issues/);
+  assert.match(worker, /\/api\/jira\/import/);
   assert.match(worker, /\/api\/sync/);
-  assert.match(worker, /env\.DB\.batch/);
+  assert.match(worker, /db\.batch/);
   assert.match(worker, /JIRA_TOKEN/);
   assert.match(migration, /CREATE TABLE IF NOT EXISTS jira_issues/);
 });

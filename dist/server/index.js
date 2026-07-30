@@ -114,9 +114,14 @@ async function syncJira(env, searchParams) {
     startAt += normalized.length;
   }
 
+  const syncedAt = await persistIssues(env.DB, issues);
+  return { issues, total, pages, syncedAt };
+}
+
+async function persistIssues(db, issues) {
   const syncedAt = new Date().toISOString();
   for (let offset = 0; offset < issues.length; offset += 50) {
-    await env.DB.batch(issues.slice(offset, offset + 50).map(issue => env.DB.prepare(`
+    await db.batch(issues.slice(offset, offset + 50).map(issue => db.prepare(`
       INSERT INTO jira_issues(issue_key, issue_json, last_synced_at)
       VALUES(?, ?, ?)
       ON CONFLICT(issue_key) DO UPDATE SET
@@ -124,7 +129,7 @@ async function syncJira(env, searchParams) {
         last_synced_at=excluded.last_synced_at
     `).bind(issue.key, JSON.stringify(issue), syncedAt)));
   }
-  return { issues, total, pages, syncedAt };
+  return syncedAt;
 }
 
 async function handleApi(request, env, url) {
@@ -152,6 +157,13 @@ async function handleApi(request, env, url) {
   if (url.pathname === '/api/sync') {
     const result = await syncJira(env, url.searchParams);
     return json({ ...result, count: result.issues.length });
+  }
+  if (url.pathname === '/api/jira/import' && request.method === 'POST') {
+    const body = await request.json();
+    const issues = Array.isArray(body.issues) ? body.issues.filter(issue => issue?.key) : [];
+    if (!issues.length) return json({ error: 'Không có task hợp lệ để import' }, 400);
+    const syncedAt = await persistIssues(env.DB, issues.slice(0, 10000));
+    return json({ ok: true, count: Math.min(issues.length, 10000), syncedAt });
   }
   if (url.pathname === '/api/state' && request.method === 'GET') {
     const period = url.searchParams.get('period');
