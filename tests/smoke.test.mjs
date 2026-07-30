@@ -132,7 +132,15 @@ test('evaluation sliders update formulas without rerendering the modal', async (
   assert.match(html, /src="evaluation-formulas\.js"/);
   assert.match(formulas, /slider\.onchange = \(\) =>/);
   assert.match(formulas, /updateFormulas\(\)/);
+  assert.match(formulas, /--score-pct/);
   assert.match(formulas, /Điểm tiêu chí con = Mức đạt \(%\) × Trọng số/);
   assert.match(formulas, /criterion-group-live/);
   assert.doesNotMatch(formulas, /slider\.onchange[\s\S]{0,400}\brender\(\)/);
+});
+
+test('evaluation slider uses a custom percentage track', async () => {
+  const css = await source('styles.css');
+  assert.match(css, /::-webkit-slider-runnable-track/);
+  assert.match(css, /var\(--score-pct,0%\)/);
+  assert.match(css, /::-moz-range-progress/);
 });

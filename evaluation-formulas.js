@@ -36,6 +36,7 @@
         const value = Number(slider.value || 0);
         const max = Number(slider.max || 0);
         const percent = max ? Math.round(value / max * 100) : 0;
+        slider.style.setProperty('--score-pct', `${percent}%`);
         formula.innerHTML = `<span>${percent}% × ${formatScore(max)}</span><b>= ${formatScore(value)} điểm</b>`;
       });
 
