@@ -1,0 +1,12 @@
+CREATE TABLE IF NOT EXISTS jira_issues (
+  issue_key TEXT PRIMARY KEY,
+  issue_json TEXT NOT NULL,
+  last_synced_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS evaluation_periods (
+  period TEXT PRIMARY KEY,
+  status TEXT NOT NULL DEFAULT 'draft',
+  state_json TEXT NOT NULL DEFAULT '{}',
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

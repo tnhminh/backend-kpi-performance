@@ -133,6 +133,18 @@ test('backend and frontend entrypoints exist', async () => {
   }
 });
 
+test('Sites worker exposes Jira sync, stored issues and D1 persistence', async () => {
+  const worker = await source('sites-worker.js');
+  const hosting = JSON.parse(await source('.openai/hosting.json'));
+  const migration = await source('drizzle/0000_public_backend.sql');
+  assert.equal(hosting.d1, 'DB');
+  assert.match(worker, /\/api\/jira\/stored-issues/);
+  assert.match(worker, /\/api\/sync/);
+  assert.match(worker, /env\.DB\.batch/);
+  assert.match(worker, /JIRA_TOKEN/);
+  assert.match(migration, /CREATE TABLE IF NOT EXISTS jira_issues/);
+});
+
 test('deployed frontend migrates stale local backend ports to same-origin API', async () => {
   const app = await source('app.js');
   assert.match(app, /localhost:878\[78\]/);

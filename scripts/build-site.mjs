@@ -6,6 +6,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const client = path.join(root, 'dist', 'client');
 const server = path.join(root, 'dist', 'server');
 const hosting = path.join(root, 'dist', '.openai');
+const migrations = path.join(root, 'drizzle');
 const staticFiles = [
   'index.html',
   'app.js',
@@ -28,16 +29,8 @@ mkdirSync(server, { recursive: true });
 mkdirSync(hosting, { recursive: true });
 for (const file of staticFiles) cpSync(path.join(root, file), path.join(client, file));
 cpSync(path.join(root, '.openai', 'hosting.json'), path.join(hosting, 'hosting.json'));
+cpSync(migrations, path.join(hosting, 'drizzle'), { recursive: true });
 
-writeFileSync(path.join(server, 'index.js'), `export default {
-  async fetch(request, env) {
-    const url = new URL(request.url);
-    if (url.pathname === "/" || url.pathname === "") {
-      return env.ASSETS.fetch(new Request(new URL("/index.html", request.url), request));
-    }
-    return env.ASSETS.fetch(request);
-  }
-};
-`);
+cpSync(path.join(root, 'sites-worker.js'), path.join(server, 'index.js'));
 
 console.log(`Built ${staticFiles.length} frontend assets for Sites.`);
