@@ -183,4 +183,9 @@ test('delivery scoring combines on-time Story Point and task completion', async 
   assert.match(scoring, /resolvedAt \|\| task\.updated/);
   assert.match(scoring, /state\[memberId\]\[group\]\.deliveryMetrics/);
   assert.match(scoring, /slider\.disabled = !canEdit\(\) \|\| metrics\.complete/);
+  assert.match(scoring, /backend-kpi-scoring-version-/);
+  assert.match(scoring, /V1 · Chấm thủ công/);
+  assert.match(scoring, /V2 · Story Point 70\/30/);
+  assert.match(scoring, /record\.scoringVersions/);
+  assert.match(scoring, /switchScoringVersion/);
 });

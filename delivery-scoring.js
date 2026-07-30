@@ -3,6 +3,37 @@
   const deliveryTitlePattern = /(task.*dung.*han|xu.*ly.*dung.*han|hoan.*thanh.*dung.*deadline|dung.*han$)/;
   const doneStatusPattern = /^(done|closed|resolved|released)$/;
   const roundScore = value => Math.round(value * 100) / 100;
+  const scoringVersionKey = () => `backend-kpi-scoring-version-${period.value}`;
+  const currentScoringVersion = () => localStorage.getItem(scoringVersionKey()) || 'v1';
+
+  function ensureVersionStore(record) {
+    record.scoringVersions ??= {};
+    record.scoringVersions.v1 ??= { scores: [...(record.scores || [])] };
+    return record.scoringVersions;
+  }
+
+  function saveVersionScores(record, version = currentScoringVersion()) {
+    const versions = ensureVersionStore(record);
+    versions[version] ??= { scores: [...(record.scores || [])] };
+    versions[version].scores = [...(record.scores || [])];
+  }
+
+  function switchScoringVersion(nextVersion) {
+    const currentVersion = currentScoringVersion();
+    members.forEach(member => {
+      [member.group, 'Leader'].forEach(group => {
+        const record = state[member.id]?.[group];
+        if (!record) return;
+        saveVersionScores(record, currentVersion);
+        const versions = ensureVersionStore(record);
+        versions[nextVersion] ??= { scores: [...(versions.v1.scores || record.scores || [])] };
+        record.scores = [...versions[nextVersion].scores];
+      });
+    });
+    localStorage.setItem(scoringVersionKey(), nextVersion);
+    localStorage.setItem(key(), JSON.stringify(state));
+    render();
+  }
 
   const dateAtEndOfDay = value => {
     if (!value) return null;
@@ -85,6 +116,12 @@
     const slider = row?.querySelector('input[data-score]');
     const title = row?.querySelector('.criterion-child-title')?.textContent || '';
     if (!row || !slider || !deliveryTitlePattern.test(personKey(title))) return;
+    if (currentScoringVersion() !== 'v2') {
+      row.querySelector('.delivery-score-card')?.remove();
+      row.classList.remove('delivery-auto-applied');
+      slider.disabled = !canEdit();
+      return;
+    }
 
     const record = state[memberId]?.[group] || {};
     const selected = record.taskLinks?.[criterionIndex] || [];
@@ -102,6 +139,7 @@
       const score = roundScore(maxScore * metrics.rate);
       state[memberId][group].scores ??= [];
       state[memberId][group].scores[criterionIndex] = score;
+      saveVersionScores(state[memberId][group], 'v2');
       slider.value = String(score);
       slider.dispatchEvent(new Event('input', { bubbles: true }));
     }
@@ -109,13 +147,39 @@
   }
 
   window.recalculateDeliveryScore = recalculateDeliveryScore;
+  window.currentScoringVersion = currentScoringVersion;
 
   renderEditor = function renderEditorWithDeliveryScoring() {
     const output = baseRenderEditor();
     const member = members.find(item => item.id === selectedId);
     if (!member) return output;
     const group = evalGroup(member);
+    const record = state[member.id]?.[group];
+    if (record) {
+      const versions = ensureVersionStore(record);
+      const version = currentScoringVersion();
+      versions[version] ??= { scores: [...(versions.v1.scores || record.scores || [])] };
+    }
+
+    const workflow = document.querySelector('#editor .evaluation-workflow');
+    if (workflow && !workflow.querySelector('.scoring-version-select')) {
+      const selector = document.createElement('label');
+      selector.className = 'scoring-version-select';
+      selector.innerHTML = `<span>Phiên bản chấm điểm</span><select aria-label="Phiên bản chấm điểm"><option value="v1" ${currentScoringVersion() === 'v1' ? 'selected' : ''}>V1 · Chấm thủ công</option><option value="v2" ${currentScoringVersion() === 'v2' ? 'selected' : ''}>V2 · Story Point 70/30</option></select>`;
+      workflow.insertBefore(selector, workflow.lastElementChild);
+      selector.querySelector('select').onchange = event => switchScoringVersion(event.target.value);
+    }
+
     document.querySelectorAll('#editor .criterion-child').forEach((row, index) => {
+      const slider = row.querySelector('input[data-score]');
+      if (slider && record) {
+        const previousInput = slider.oninput;
+        slider.oninput = () => {
+          previousInput?.();
+          saveVersionScores(record);
+          localStorage.setItem(key(), JSON.stringify(state));
+        };
+      }
       const title = row.querySelector('.criterion-child-title')?.textContent || '';
       if (deliveryTitlePattern.test(personKey(title))) {
         recalculateDeliveryScore(member.id, group, index);
