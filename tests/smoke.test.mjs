@@ -125,3 +125,14 @@ test('deployed frontend migrates stale local backend ports to same-origin API', 
   assert.match(app, /localhost:878\[78\]/);
   assert.match(app, /localStorage\.setItem\('backend-kpi-api-base',defaultBackendApi\)/);
 });
+
+test('evaluation sliders update formulas without rerendering the modal', async () => {
+  const html = await source('index.html');
+  const formulas = await source('evaluation-formulas.js');
+  assert.match(html, /src="evaluation-formulas\.js"/);
+  assert.match(formulas, /slider\.onchange = \(\) =>/);
+  assert.match(formulas, /updateFormulas\(\)/);
+  assert.match(formulas, /Điểm tiêu chí con = Mức đạt \(%\) × Trọng số/);
+  assert.match(formulas, /criterion-group-live/);
+  assert.doesNotMatch(formulas, /slider\.onchange[\s\S]{0,400}\brender\(\)/);
+});

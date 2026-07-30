@@ -18,7 +18,8 @@ const staticFiles = [
   'motion-effects.js',
   'production-suite.js',
   'jira-filters.js',
-  'jira-task-filters.js'
+  'jira-task-filters.js',
+  'evaluation-formulas.js'
 ];
 
 mkdirSync(client, { recursive: true });
