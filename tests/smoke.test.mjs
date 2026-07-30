@@ -49,6 +49,21 @@ test('Jira fields support multi-select, title fallback and color coding', async 
   }
 });
 
+test('cross-team comparison shows the live fairness formula beside the ranking', async () => {
+  const html = await source('index.html');
+  const panel = await source('comparison-formula.js');
+  const css = await source('styles.css');
+  assert.match(html, /src="comparison-formula\.js"/);
+  assert.match(panel, /Hoàn thành × 30%/);
+  assert.match(panel, /Effort × 35%/);
+  assert.match(panel, /KPI × 25%/);
+  assert.match(panel, /Ổn định × 10%/);
+  assert.match(panel, /Điểm tuyệt đối × 75%/);
+  assert.match(panel, /Chỉ số team × 25%/);
+  assert.match(panel, /workloadResult\(member\)/);
+  assert.match(css, /#evaluationContent\.comparison-layout/);
+});
+
 test('Jira task filters index data, preserve state and clear safely', async () => {
   const filters = await source('jira-task-filters.js');
   for (const control of ['jiraListTeam', 'jiraListAssignee', 'jiraListType', 'jiraListPriority', 'jiraListLabel', 'jiraListQuality']) {
