@@ -21,7 +21,8 @@ const staticFiles = [
   'jira-filters.js',
   'jira-task-filters.js',
   'evaluation-tasks.js',
-  'evaluation-formulas.js'
+  'evaluation-formulas.js',
+  'delivery-scoring.js'
 ];
 
 mkdirSync(client, { recursive: true });

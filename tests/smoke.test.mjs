@@ -170,3 +170,17 @@ test('evaluation slider uses a custom percentage track', async () => {
   assert.match(css, /var\(--score-pct,0%\)/);
   assert.match(css, /::-moz-range-progress/);
 });
+
+test('delivery scoring combines on-time Story Point and task completion', async () => {
+  const html = await source('index.html');
+  const scoring = await source('delivery-scoring.js');
+  const dockerfile = await source('infra/Dockerfile.web');
+  assert.match(html, /src="delivery-scoring\.js"/);
+  assert.match(dockerfile, /delivery-scoring\.js/);
+  assert.match(scoring, /pointRate \* \.7 \+ taskRate \* \.3/);
+  assert.match(scoring, /missingPoints/);
+  assert.match(scoring, /missingDeadline/);
+  assert.match(scoring, /resolvedAt \|\| task\.updated/);
+  assert.match(scoring, /state\[memberId\]\[group\]\.deliveryMetrics/);
+  assert.match(scoring, /slider\.disabled = !canEdit\(\) \|\| metrics\.complete/);
+});

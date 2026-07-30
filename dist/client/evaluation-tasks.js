@@ -42,6 +42,7 @@
     state[member.id][group].taskLinks[criterionIndex] = selected;
     localStorage.setItem(key(), JSON.stringify(state));
     toggle.firstChild.textContent = selected.length ? `${selected.length} task đã chọn ` : 'Chọn task liên quan ';
+    window.recalculateDeliveryScore?.(member.id, group, criterionIndex);
   }
 
   function refreshTaskPickers() {
