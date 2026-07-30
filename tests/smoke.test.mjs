@@ -208,11 +208,14 @@ test('delivery scoring combines on-time Story Point and task completion', async 
   assert.match(html, /src="delivery-scoring\.js"/);
   assert.match(dockerfile, /delivery-scoring\.js/);
   assert.match(scoring, /pointRate \* \.7 \+ taskRate \* \.3/);
+  assert.match(scoring, /task\.\*han\|xuly\.\*han\|hoanthanh\.\*han\|deadline/);
   assert.match(scoring, /missingPoints/);
   assert.match(scoring, /missingDeadline/);
   assert.match(scoring, /resolvedAt \|\| task\.updated/);
   assert.match(scoring, /state\[memberId\]\[group\]\.deliveryMetrics/);
-  assert.match(scoring, /slider\.disabled = !canEdit\(\) \|\| metrics\.complete/);
+  assert.match(scoring, /slider\.disabled = !canEdit\(\) \|\| selected\.length > 0/);
+  assert.match(scoring, /Điểm tiến độ tạm tính/);
+  assert.match(scoring, /state\[memberId\]\[group\]\.scores\[criterionIndex\] = 0/);
   assert.match(scoring, /backend-kpi-scoring-version-/);
   assert.match(scoring, /V1 · Chấm thủ công/);
   assert.match(scoring, /V2 · Story Point 70\/30/);

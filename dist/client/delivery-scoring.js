@@ -1,6 +1,6 @@
 (function installDeliveryScoring() {
   const baseRenderEditor = renderEditor;
-  const deliveryTitlePattern = /(task.*dung.*han|xu.*ly.*dung.*han|hoan.*thanh.*dung.*deadline|dung.*han$)/;
+  const deliveryTitlePattern = /(task.*han|xuly.*han|hoanthanh.*han|deadline)/;
   const doneStatusPattern = /^(done|closed|resolved|released)$/;
   const roundScore = value => Math.round(value * 100) / 100;
   const scoringVersionKey = () => `backend-kpi-scoring-version-${period.value}`;
@@ -100,7 +100,8 @@
         metrics.missingDeadline ? `${metrics.missingDeadline} task thiếu deadline` : '',
         metrics.missingTasks ? `${metrics.missingTasks} task không còn trong dữ liệu Jira` : ''
       ].filter(Boolean);
-      card.innerHTML = `<b>Chưa đủ dữ liệu để tự chấm</b><span>${warnings.join(' · ')}. Điểm hiện tại được giữ nguyên để người đánh giá xử lý.</span>`;
+      const score = roundScore(maxScore * metrics.rate);
+      card.innerHTML = `<div><b>Điểm tiến độ tạm tính</b><span>${warnings.join(' · ')}. Hệ thống vẫn tính theo task đang chọn.</span></div><strong>${score.toFixed(2)} / ${Number(maxScore).toFixed(2)}</strong><small>SP: ${metrics.onTimePoints}/${metrics.committedPoints} · Task: ${metrics.onTimeTasks}/${metrics.tasks} · Mức đạt ${(metrics.rate * 100).toFixed(0)}%</small>`;
     } else {
       const score = roundScore(maxScore * metrics.rate);
       card.innerHTML = `<div><b>Điểm tiến độ tự động</b><span>70% SP đúng hạn + 30% số task đúng hạn</span></div><strong>${score.toFixed(2)} / ${Number(maxScore).toFixed(2)}</strong><small>SP: ${metrics.onTimePoints}/${metrics.committedPoints} · Task: ${metrics.onTimeTasks}/${metrics.tasks} · Mức đạt ${(metrics.rate * 100).toFixed(0)}%</small>`;
@@ -128,19 +129,25 @@
     const metrics = deliveryMetrics(selected);
     const maxScore = Number(slider.max || 0);
     renderMetric(row, metrics, maxScore);
-    row.classList.toggle('delivery-auto-applied', metrics.complete);
-    slider.disabled = !canEdit() || metrics.complete;
+    row.classList.toggle('delivery-auto-applied', selected.length > 0);
+    slider.disabled = !canEdit() || selected.length > 0;
 
     state[memberId] ??= {};
     state[memberId][group] ??= {};
     state[memberId][group].deliveryMetrics ??= {};
     state[memberId][group].deliveryMetrics[criterionIndex] = metrics;
-    if (metrics.complete) {
+    if (selected.length > 0) {
       const score = roundScore(maxScore * metrics.rate);
       state[memberId][group].scores ??= [];
       state[memberId][group].scores[criterionIndex] = score;
       saveVersionScores(state[memberId][group], 'v2');
       slider.value = String(score);
+      slider.dispatchEvent(new Event('input', { bubbles: true }));
+    } else {
+      state[memberId][group].scores ??= [];
+      state[memberId][group].scores[criterionIndex] = 0;
+      saveVersionScores(state[memberId][group], 'v2');
+      slider.value = '0';
       slider.dispatchEvent(new Event('input', { bubbles: true }));
     }
     localStorage.setItem(key(), JSON.stringify(state));
