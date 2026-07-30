@@ -49,18 +49,32 @@ test('Jira fields support multi-select, title fallback and color coding', async 
   }
 });
 
-test('Jira task filters wire controls, hide non-matching rows and clear safely', async () => {
+test('Jira task filters index data, preserve state and clear safely', async () => {
   const filters = await source('jira-task-filters.js');
   for (const control of ['jiraListTeam', 'jiraListAssignee', 'jiraListType', 'jiraListPriority', 'jiraListLabel', 'jiraListQuality']) {
     assert.match(filters, new RegExp(`#${control}`), `${control} filter is missing`);
   }
-  assert.match(filters, /select\.onchange\s*=\s*filterRows/);
-  assert.match(filters, /row\.hidden\s*=\s*hidden/);
-  assert.match(filters, /row\.style\.display\s*=\s*hidden \? 'none' : ''/);
-  assert.match(filters, /displayedAssignee/);
+  assert.match(filters, /const indexedIssues = issues\.map/);
+  assert.match(filters, /const membersById = new Map/);
+  assert.match(filters, /const membersByName = new Map/);
+  assert.match(filters, /searchTimer = setTimeout/);
+  assert.match(filters, /}, 250\)/);
   assert.match(filters, /assigneeMatches/);
-  assert.match(filters, /count\.textContent\s*=\s*`\$\{visible\}\/\$\{issues\.length\} task`/);
+  assert.match(filters, /count\.textContent = `\$\{matches\.length\}\/\$\{issues\.length\} task`/);
   assert.match(filters, /clearJiraListFilters/);
+});
+
+test('Jira task list renders only the current filtered page', async () => {
+  const filters = await source('jira-task-filters.js');
+  const fields = await source('jira-fields.js');
+  for (const control of ['jiraPageSize', 'jiraPagePrev', 'jiraPageNext']) {
+    assert.match(filters, new RegExp(`#${control}`), `${control} pagination control is missing`);
+  }
+  assert.match(filters, /Math\.ceil\(matches\.length \/ listState\.pageSize\)/);
+  assert.match(filters, /matches\.slice\(start, start \+ listState\.pageSize\)/);
+  assert.match(filters, /list\.innerHTML = pageIssues\.length/);
+  assert.match(filters, /jiraTaskRowHtml\(issue, selectedFields\)/);
+  assert.match(fields, /initialTasks=tasks\.slice\(0,20\)/);
 });
 
 test('Jira sync filters build JQL from project, dates, sprint, assignee and advanced clauses', async () => {
@@ -104,4 +118,10 @@ test('backend and frontend entrypoints exist', async () => {
     const content = await readFile(new URL(file, root), 'utf8');
     assert.ok(content.length > 100, `${file} should not be empty`);
   }
+});
+
+test('deployed frontend migrates stale local backend ports to same-origin API', async () => {
+  const app = await source('app.js');
+  assert.match(app, /localhost:878\[78\]/);
+  assert.match(app, /localStorage\.setItem\('backend-kpi-api-base',defaultBackendApi\)/);
 });
