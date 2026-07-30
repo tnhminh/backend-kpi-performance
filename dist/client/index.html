@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css" /><link rel="stylesheet" href="tour-fix.css" />
 </head>
 <body>
   <main class="shell">
@@ -40,7 +40,7 @@
       <div class="tabs" id="groupTabs"></div>
       <div class="toolbar-right">
         <label class="search"><span>⌕</span><input id="search" placeholder="Tìm MNV hoặc họ tên..." /></label>
-        <button class="btn btn-outline" id="exportBtn">Xuất CSV</button>
+        <button class="btn btn-outline" id="exportBtn">Xuất CSV</button><button class="btn btn-outline" id="exportJsonBtn">Xuất JSON</button>
       </div>
     </section>
 
@@ -83,7 +83,7 @@
 
     <footer><span>Đã đối chiếu công thức từ “Backend Tiêu Chí Đánh Giá.xlsx”</span><span>Điểm tiêu chí không vượt quá điểm tối đa</span></footer>
   </main>
-  <div class="tour-backdrop hidden" id="tourBackdrop"><div class="tour-popover" role="dialog" aria-modal="true" aria-labelledby="tourTitle"><div class="tour-kicker" id="tourStep">BƯỚC 1 / 5</div><h2 id="tourTitle"></h2><p id="tourText"></p><div class="tour-actions"><button class="btn btn-ghost" id="tourPrev">Quay lại</button><button class="btn btn-primary" id="tourNext">Tiếp theo</button><button class="btn btn-ghost" id="tourClose">Đóng</button></div></div></div>
-  <script src="app.js"></script>
+  <div class="tour-backdrop hidden" id="tourBackdrop"><div class="tour-popover" role="dialog" aria-modal="false" aria-labelledby="tourTitle" aria-describedby="tourText"><div class="tour-kicker" id="tourStep" aria-live="polite">BƯỚC 1 / 12</div><h2 id="tourTitle"></h2><p id="tourText"></p><div class="tour-actions"><button class="btn btn-ghost" id="tourPrev" aria-label="Quay lại bước trước">Quay lại</button><button class="btn btn-primary" id="tourNext">Tiếp theo</button><button class="btn btn-ghost" id="tourClose" aria-label="Đóng hướng dẫn">Đóng</button></div></div></div>
+  <script src="app.js"></script><script src="tour-fix.js"></script><script src="production-fixes.js"></script><script src="jira-mapping.js"></script><script src="jira-fields.js"></script><script src="motion-effects.js"></script><script src="production-suite.js"></script><script src="jira-filters.js"></script><script src="jira-task-filters.js"></script>
 </body>
 </html>
