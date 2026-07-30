@@ -5,6 +5,7 @@ import path from 'node:path';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const client = path.join(root, 'dist', 'client');
 const server = path.join(root, 'dist', 'server');
+const hosting = path.join(root, 'dist', '.openai');
 const staticFiles = [
   'index.html',
   'app.js',
@@ -22,7 +23,9 @@ const staticFiles = [
 
 mkdirSync(client, { recursive: true });
 mkdirSync(server, { recursive: true });
+mkdirSync(hosting, { recursive: true });
 for (const file of staticFiles) cpSync(path.join(root, file), path.join(client, file));
+cpSync(path.join(root, '.openai', 'hosting.json'), path.join(hosting, 'hosting.json'));
 
 writeFileSync(path.join(server, 'index.js'), `export default {
   async fetch(request, env) {
