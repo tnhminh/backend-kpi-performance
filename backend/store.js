@@ -162,6 +162,18 @@ export function createStore(databasePath = process.env.DB_PATH || defaultPath) {
       if (!latest) return [];
       return db.prepare('SELECT issue_json FROM jira_issues WHERE last_sync_key=? ORDER BY issue_key LIMIT ?').all(latest.sync_key, limit)
         .map(row => parse(row.issue_json, {}));
+    },
+    updateJiraIssues(issues) {
+      const statement = db.prepare('UPDATE jira_issues SET issue_json=?,updated_at=CURRENT_TIMESTAMP WHERE issue_key=?');
+      db.prepare('BEGIN').run();
+      try {
+        for (const issue of issues || []) statement.run(json(issue), issue.key);
+        db.prepare('COMMIT').run();
+      } catch (error) {
+        db.prepare('ROLLBACK').run();
+        throw error;
+      }
+      return issues?.length || 0;
     }
   };
 }

@@ -23,7 +23,8 @@ const staticFiles = [
   'evaluation-tasks.js',
   'evaluation-formulas.js',
   'delivery-scoring.js',
-  'comparison-formula.js'
+  'comparison-formula.js',
+  'jira-storypoint-autofill.js'
 ];
 
 mkdirSync(client, { recursive: true });

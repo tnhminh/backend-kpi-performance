@@ -187,6 +187,49 @@ async function readJson(req) {
   return body ? JSON.parse(body) : {};
 }
 
+function suggestedStoryPoints(issue, strategy = 'balanced') {
+  const fixed = Number(strategy);
+  if ([1, 2, 3, 5, 8].includes(fixed)) return fixed;
+  const type = String(issue.issueType || '').toLowerCase();
+  const title = String(issue.title || '').toLowerCase();
+  if (type.includes('epic')) return 8;
+  if (type.includes('story') || type.includes('feature')) return 5;
+  if (type.includes('sub-task') || type.includes('subtask') || type.includes('support') || type.includes('maintain')) return 2;
+  if (type.includes('bug') || type.includes('task')) return 3;
+  if (/\b(epic|migration|refactor|integration)\b/.test(title)) return 5;
+  if (/\b(doc|config|support|maintain)\b/.test(title)) return 2;
+  return 3;
+}
+
+async function autofillStoryPoints(body, actor) {
+  requireRole(actor, ['Admin']);
+  const strategy = String(body.strategy || 'balanced');
+  const issues = await store.listJiraIssues(10000);
+  const missing = issues.filter(issue => !Number(issue.storyPoints));
+  const updatedAt = new Date().toISOString();
+  const updates = missing.map(issue => ({
+    ...issue,
+    storyPoints: suggestedStoryPoints(issue, strategy),
+    storyPointSource: 'auto-fill',
+    storyPointAutofilledAt: updatedAt
+  }));
+  if (!body.dryRun && updates.length) await store.updateJiraIssues(updates);
+  return {
+    ok: true,
+    dryRun: Boolean(body.dryRun),
+    strategy,
+    total: issues.length,
+    eligible: updates.length,
+    updated: body.dryRun ? 0 : updates.length,
+    skipped: issues.length - updates.length,
+    sample: updates.slice(0, 8).map(issue => ({
+      key: issue.key,
+      issueType: issue.issueType,
+      storyPoints: issue.storyPoints
+    }))
+  };
+}
+
 async function handle(req, res) {
   if (req.method === 'OPTIONS') return send(res, 204, {});
   const url = new URL(req.url, `http://${req.headers.host}`);
@@ -241,6 +284,9 @@ async function handle(req, res) {
     if (url.pathname === '/api/jira/test') return send(res, 200, { ok: true, jira: await jiraRequest('/rest/api/2/myself') });
     if (url.pathname === '/api/jira/issues') return send(res, 200, await searchIssues(url.searchParams));
     if (url.pathname === '/api/jira/stored-issues') return send(res, 200, { issues: await store.listJiraIssues(Math.min(Number(url.searchParams.get('limit') || 10000), 10000)) });
+    if (url.pathname === '/api/jira/autofill-story-points' && req.method === 'POST') {
+      return send(res, 200, await autofillStoryPoints(await readJson(req), actor));
+    }
     if (url.pathname === '/api/jira/sync-runs') {
       requireRole(actor, ['Leader', 'Admin']);
       return send(res, 200, { runs: await store.listJiraSyncRuns(Math.min(Number(url.searchParams.get('limit') || 30), 200)) });

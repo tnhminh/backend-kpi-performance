@@ -64,6 +64,21 @@ test('cross-team comparison shows the live fairness formula beside the ranking',
   assert.match(css, /#evaluationContent\.comparison-layout/);
 });
 
+test('Jira simulator can preview and persist Story Point autofill', async () => {
+  const html = await source('index.html');
+  const ui = await source('jira-storypoint-autofill.js');
+  const server = await source('backend/server.js');
+  const worker = await source('sites-worker.js');
+  assert.match(html, /src="jira-storypoint-autofill\.js"/);
+  assert.match(ui, /\/api\/jira\/autofill-story-points/);
+  assert.match(ui, /dryRun/);
+  assert.match(ui, /Auto-fill vào DB/);
+  assert.match(server, /suggestedStoryPoints/);
+  assert.match(server, /updateJiraIssues/);
+  assert.match(worker, /\/api\/jira\/autofill-story-points/);
+  assert.match(worker, /storyPointSource: 'auto-fill'/);
+});
+
 test('Jira task filters index data, preserve state and clear safely', async () => {
   const filters = await source('jira-task-filters.js');
   for (const control of ['jiraListTeam', 'jiraListAssignee', 'jiraListType', 'jiraListPriority', 'jiraListLabel', 'jiraListQuality']) {

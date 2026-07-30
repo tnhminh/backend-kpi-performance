@@ -148,6 +148,25 @@ export async function createPostgresStore(connectionString = process.env.DATABAS
       const latest = await queryOne("SELECT sync_key FROM jira_sync_runs WHERE status='completed' ORDER BY completed_at DESC NULLS LAST, id DESC LIMIT 1");
       if (!latest) return [];
       return (await queryAll('SELECT issue_json FROM jira_issues WHERE last_sync_key=$1 ORDER BY issue_key LIMIT $2', [latest.sync_key, limit])).map(row => parse(row.issue_json, {}));
+    },
+    updateJiraIssues: async issues => {
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        for (const issue of issues || []) {
+          await client.query(
+            'UPDATE jira_issues SET story_points=$1,issue_json=$2,updated_at=NOW() WHERE issue_key=$3',
+            [Number(issue.storyPoints || 0), json(issue), issue.key]
+          );
+        }
+        await client.query('COMMIT');
+      } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+      } finally {
+        client.release();
+      }
+      return issues?.length || 0;
     }
   };
 }

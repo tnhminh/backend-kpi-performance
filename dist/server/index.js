@@ -132,6 +132,56 @@ async function persistIssues(db, issues) {
   return syncedAt;
 }
 
+function suggestedStoryPoints(issue, strategy = 'balanced') {
+  const fixed = Number(strategy);
+  if ([1, 2, 3, 5, 8].includes(fixed)) return fixed;
+  const type = String(issue.issueType || '').toLowerCase();
+  const title = String(issue.title || '').toLowerCase();
+  if (type.includes('epic')) return 8;
+  if (type.includes('story') || type.includes('feature')) return 5;
+  if (type.includes('sub-task') || type.includes('subtask') || type.includes('support') || type.includes('maintain')) return 2;
+  if (type.includes('bug') || type.includes('task')) return 3;
+  if (/\b(epic|migration|refactor|integration)\b/.test(title)) return 5;
+  if (/\b(doc|config|support|maintain)\b/.test(title)) return 2;
+  return 3;
+}
+
+async function autofillStoryPoints(db, body) {
+  const result = await db.prepare(
+    'SELECT issue_key,issue_json FROM jira_issues ORDER BY last_synced_at DESC LIMIT 10000'
+  ).all();
+  const issues = (result.results || []).map(row => JSON.parse(row.issue_json));
+  const strategy = String(body.strategy || 'balanced');
+  const updatedAt = new Date().toISOString();
+  const updates = issues.filter(issue => !Number(issue.storyPoints)).map(issue => ({
+    ...issue,
+    storyPoints: suggestedStoryPoints(issue, strategy),
+    storyPointSource: 'auto-fill',
+    storyPointAutofilledAt: updatedAt
+  }));
+  if (!body.dryRun) {
+    for (let offset = 0; offset < updates.length; offset += 50) {
+      await db.batch(updates.slice(offset, offset + 50).map(issue => db.prepare(
+        'UPDATE jira_issues SET issue_json=?,last_synced_at=? WHERE issue_key=?'
+      ).bind(JSON.stringify(issue), updatedAt, issue.key)));
+    }
+  }
+  return {
+    ok: true,
+    dryRun: Boolean(body.dryRun),
+    strategy,
+    total: issues.length,
+    eligible: updates.length,
+    updated: body.dryRun ? 0 : updates.length,
+    skipped: issues.length - updates.length,
+    sample: updates.slice(0, 8).map(issue => ({
+      key: issue.key,
+      issueType: issue.issueType,
+      storyPoints: issue.storyPoints
+    }))
+  };
+}
+
 async function handleApi(request, env, url) {
   if (!env.DB) return json({ error: 'Hosting chưa được gắn database DB' }, 503);
   await ensureSchema(env.DB);
@@ -153,6 +203,10 @@ async function handleApi(request, env, url) {
       'SELECT issue_json FROM jira_issues ORDER BY last_synced_at DESC LIMIT ?'
     ).bind(limit).all();
     return json({ issues: (result.results || []).map(row => JSON.parse(row.issue_json)) });
+  }
+  if (url.pathname === '/api/jira/autofill-story-points' && request.method === 'POST') {
+    if (request.headers.get('x-user-role') !== 'Admin') return json({ error: 'Chỉ Admin được auto-fill Story Point' }, 403);
+    return json(await autofillStoryPoints(env.DB, await request.json()));
   }
   if (url.pathname === '/api/sync') {
     const result = await syncJira(env, url.searchParams);

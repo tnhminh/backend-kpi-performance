@@ -82,6 +82,40 @@
 @media(max-width:1200px){#evaluationContent.comparison-layout{grid-template-columns:1fr}.comparison-formula-panel{position:static}.comparison-formula-body{grid-template-columns:repeat(2,minmax(0,1fr))}.formula-live-example{grid-column:1/-1}}
 @media(max-width:700px){.comparison-formula-body{grid-template-columns:1fr}.formula-live-example{grid-column:auto}}
 
+/* Jira Story Point autofill simulator */
+.storypoint-autofill{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px 24px;padding:18px 20px;border-top:1px solid var(--line);background:linear-gradient(120deg,#f8fbff,#fff)}
+.storypoint-autofill-copy{display:grid;gap:12px}
+.storypoint-autofill-title{display:flex;align-items:center;gap:11px}
+.storypoint-autofill-title>div{display:grid;gap:4px}
+.storypoint-autofill-title b{color:#23324c;font-size:12px}
+.storypoint-autofill-title span{color:var(--muted);font-size:9px}
+.storypoint-icon{display:grid!important;place-items:center;width:34px;height:34px;border-radius:10px;background:#e8f0ff;color:var(--blue)!important;font-size:10px!important;font-weight:800}
+.storypoint-stats{display:flex;flex-wrap:wrap;gap:7px}
+.storypoint-stats span{padding:7px 9px;border-radius:8px;background:#eef2f8;color:#657690;font-size:9px}
+.storypoint-stats b{color:#30415e;font-size:11px}
+.storypoint-stats .warning{background:#fff4e6;color:#a97120}
+.storypoint-stats .warning b{color:#a8660c}
+.storypoint-stats .complete,.storypoint-stats .ready{background:#eaf8f1;color:#398060}
+.storypoint-stats .complete b,.storypoint-stats .ready b{color:#237454}
+.storypoint-autofill-actions{display:flex;align-items:end;gap:8px}
+.storypoint-autofill-actions label{display:grid;gap:5px;color:var(--muted);font-size:9px;font-weight:600}
+.storypoint-autofill-actions select{min-width:210px;padding:10px 11px;border:1px solid #d5deed;border-radius:9px;background:#fff;color:#2a3954;font:600 10px inherit}
+.storypoint-autofill-actions .btn{padding:10px 12px}
+.storypoint-preview{grid-column:1/-1;display:flex;justify-content:space-between;gap:16px;padding:12px 13px;border:1px solid #d8e4f8;border-radius:10px;background:#f1f6ff}
+.storypoint-preview>div:first-child{display:grid;gap:4px;min-width:170px}
+.storypoint-preview b{color:#294775;font-size:10px}
+.storypoint-preview span{color:#7485a0;font-size:8px}
+.storypoint-samples{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px}
+.storypoint-samples span{display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:7px;background:#fff;border:1px solid #dce6f6}
+.storypoint-samples b{font-size:8px}
+.storypoint-samples em{color:#7d8da5;font-size:7px;font-style:normal}
+.storypoint-samples strong{color:var(--blue);font-size:9px}
+.storypoint-none{align-self:center}
+.storypoint-rule-note{grid-column:1/-1;color:#8290a6;font-size:8px}
+.storypoint-rule-note b{color:#60718f}
+@media(max-width:1000px){.storypoint-autofill{grid-template-columns:1fr}.storypoint-autofill-actions{align-items:end}.storypoint-preview{grid-column:auto;display:grid}.storypoint-samples{justify-content:flex-start}.storypoint-rule-note{grid-column:auto}}
+@media(max-width:650px){.storypoint-autofill-actions{display:grid;grid-template-columns:1fr 1fr}.storypoint-autofill-actions label{grid-column:1/-1}.storypoint-autofill-actions select{width:100%}}
+
 /* Cross-browser score track: the fill reaches the actual 100% endpoint. */
 .score-slider-control{--score-color:#3565e8;--score-track:#dce3ed}
 .score-slider-control.score-low{--score-color:#dc6c70}
