@@ -19,6 +19,7 @@ const staticFiles = [
   'production-suite.js',
   'jira-filters.js',
   'jira-task-filters.js',
+  'evaluation-tasks.js',
   'evaluation-formulas.js'
 ];
 

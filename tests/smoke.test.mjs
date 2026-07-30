@@ -99,6 +99,19 @@ test('Jira sync persists issues and reloads the latest stored snapshot', async (
   assert.match(filters, /state\.jiraIssues = data\.issues/);
 });
 
+test('evaluation task picker uses stored Jira tasks mapped to the selected member', async () => {
+  const html = await source('index.html');
+  const dockerfile = await source('infra/Dockerfile.web');
+  const picker = await source('evaluation-tasks.js');
+  assert.match(html, /src="evaluation-tasks\.js"/);
+  assert.match(dockerfile, /evaluation-tasks\.js/);
+  assert.match(picker, /state\.jiraIssues/);
+  assert.match(picker, /jiraTaskMember\(task\)/);
+  assert.match(picker, /taskBelongsToMember/);
+  assert.match(picker, /data-task-key/);
+  assert.match(picker, /refreshTaskPickers/);
+});
+
 test('quick guide covers every current product module and routes before highlighting', async () => {
   const tour = await source('tour-fix.js');
   const modules = ['dashboard', 'evaluation', 'comparison', 'tasks', 'jiraTasks', 'timeline', 'demo', 'formula', 'audit', 'criteria', 'settings'];
