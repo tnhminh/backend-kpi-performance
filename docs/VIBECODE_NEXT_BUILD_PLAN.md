@@ -1,133 +1,133 @@
-# Backend KPI Performance - Vibecode next build plan
+# Backend KPI Performance - Kế hoạch build tiếp bằng vibecode
 
-## 1. Baseline hien tai
+## 1. Baseline hiện tại
 
-Ngay lap plan: 2026-07-31
+Ngày lập plan: 2026-07-31
 
-Commit moi nhat dang tren repo:
+Commit baseline trước khi lập plan:
 
 ```text
 9f4527c fix: recalculate V2 score when Jira tasks change
 ```
 
-Trang thai code tai thoi diem lap plan:
+Trạng thái code tại thời điểm lập plan:
 
-- Worktree sach, khong co file local chua commit.
-- Local Docker stack da chay duoc tren port 8081.
-- Public site hien co: `https://backend-kpi-performance.ngaquyenphamquyen682.chatgpt.site`.
-- Public site co the chua cap nhat neu hosting project hien tai khong truy cap duoc tu connector deploy.
-- Test gan nhat: `22/22 passed`.
+- Worktree sạch, không có file local chưa commit.
+- Local Docker stack đã chạy được trên port 8081.
+- Public site hiện có: `https://backend-kpi-performance.ngaquyenphamquyen682.chatgpt.site`.
+- Public site có thể chưa phải bản mới nhất nếu project hosting hiện tại không truy cập được từ connector deploy.
+- Test gần nhất: `22/22 passed`.
 
-Nhung tinh nang da co nen giu:
+Những tính năng đã có nên giữ:
 
-- Frontend KPI dashboard, danh gia member, so sanh lien nhom, tao task, Task Jira, timeline, trinh gia lap, cong thuc, audit log, cau hinh tieu chi.
-- Backend Node.js API, Docker Compose portable voi web, backend, PostgreSQL, Redis.
+- Frontend KPI dashboard, đánh giá member, so sánh liên nhóm, tạo task, Task Jira, timeline, trình giả lập, công thức, audit log, cấu hình tiêu chí.
+- Backend Node.js API, Docker Compose portable với web, backend, PostgreSQL, Redis.
 - Jira sync, pagination, filter, field display, task evidence picker.
-- Luu danh gia vao DB/backend state, khong chi phu thuoc localStorage nhu ban prototype cu.
-- V1 scoring duoc giu lai.
-- V2 Story Point 70/30 da them va da sua loi tinh lai diem khi thay doi task Jira.
-- Auto fill Story Point cho task Jira hien co trong DB.
-- Formula panel cho So sanh lien nhom.
+- Lưu đánh giá vào DB/backend state, không chỉ phụ thuộc localStorage như bản prototype cũ.
+- V1 scoring được giữ lại.
+- V2 Story Point 70/30 đã thêm và đã sửa lỗi tính lại điểm khi thay đổi task Jira.
+- Auto fill Story Point cho task Jira hiện có trong DB.
+- Formula panel cho màn So sánh liên nhóm.
 
-## 2. Nguyen tac build tiep
+## 2. Nguyên tắc build tiếp
 
-- Build tiep tren branch moi tu `main`, khong sua truc tiep neu chua review.
-- Giu V1 bat bien, moi thay doi lien quan Story Point phai nam trong V2 hoac version moi.
-- Moi logic tinh diem phai co formula text tren UI va test tuong ung.
-- Du lieu Jira thieu Story Point, deadline, assignee phai hien canh bao ro, khong am tham tinh sai.
-- Moi task can co acceptance criteria ro de nguoi review bam vao test duoc.
+- Build tiếp trên branch mới từ `main`, không sửa trực tiếp nếu chưa review.
+- Giữ V1 bất biến. Mọi thay đổi liên quan Story Point phải nằm trong V2 hoặc version mới.
+- Mọi logic tính điểm phải có formula text trên UI và test tương ứng.
+- Dữ liệu Jira thiếu Story Point, deadline, assignee phải hiện cảnh báo rõ, không âm thầm tính sai.
+- Mỗi task cần có acceptance criteria rõ để người review bấm vào test được.
 
-## 3. Tong manday du kien
+## 3. Tổng manday dự kiến
 
-Tong du kien neu vibecode: **8.5 - 11 manday**.
+Tổng dự kiến nếu vibecode: **8.5 - 11 manday**.
 
-Neu code chay thu cong khong dung vibecode, cung scope nay thuong khoang **18 - 25 manday** vi mat nhieu thoi gian o cac phan doc code, lap UI state, viet test hoi quy, test Jira/DB va sua cac edge case.
+Nếu code chay thủ công, không dùng vibecode, cùng scope này thường khoảng **18 - 25 manday** vì mất nhiều thời gian ở các phần đọc code, dựng UI state, viết test hồi quy, test Jira/DB và sửa edge case.
 
-Bang estimate ben duoi tinh theo 1 member co the dung AI coding assistant de doc code, patch, build, chay test va QA nhanh.
+Estimate bên dưới tính theo 1 member có thể dùng AI coding assistant để đọc code, patch, build, chạy test và QA nhanh.
 
 ## 4. Task breakdown
 
 | ID | Task | Subtask | MD vibecode | Output | Acceptance criteria |
 |---|---|---|---:|---|---|
-| T1 | Onboard va dong bo moi truong | Clone/pull `main`, checkout tu commit moi nhat, cai dependency, tao `.env`, chay Docker stack | 0.25 | Local app chay duoc | Mo `http://localhost:8081`, backend health ok |
-| T1 | Onboard va dong bo moi truong | Doc `README.md`, `PROJECT_HANDOVER.md`, `PRODUCTION_SUITE.md`, `DEPLOYMENT_PORTABLE.md`, file plan nay | 0.25 | Nam duoc kien truc | Member giai thich duoc luong Jira -> DB -> UI -> diem KPI |
-| T2 | Cap nhat docs theo trang thai moi | Sua docs cu con noi localStorage/memory token thanh trang thai moi: DB, Docker, V1/V2, Story Point autofill | 0.5 | Docs khong lech code | Handover doc khop tinh nang hien tai |
-| T2 | Cap nhat docs theo trang thai moi | Bo sung troubleshooting: public site chua update, hosting project inaccessible, cach deploy portable | 0.25 | Huong dan van hanh ro hon | Member moi khong nham public da la latest |
-| T3 | Khoa chat scoring V1/V2 | Tao test case cho V1: slider thu cong, task evidence chi lam minh chung, diem doi theo slider | 0.5 | Regression test V1 | V1 khong bi logic Story Point anh huong |
-| T3 | Khoa chat scoring V1/V2 | Tao test case cho V2: them/bo task, task missing deadline/SP, on-time/off-time, score cap nhat ngay | 0.75 | Regression test V2 | Chon task thay doi thi delivery score va total score cap nhat |
-| T3 | Khoa chat scoring V1/V2 | UI copy giai thich ro: diem co the khong doi neu ty le dat khong doi | 0.25 | Tooltip/text ngan trong modal | User hieu vi sao them/bot task co luc diem van bang nhau |
-| T4 | Cai thien task evidence picker | Them count theo nhom: selected, on-time, late, missing deadline, missing story point | 0.75 | Picker co summary | Mo dropdown nhin duoc chat luong task dang chon |
-| T4 | Cai thien task evidence picker | Them filter trong picker: tat ca, done, late, missing SP, missing deadline | 0.75 | Chon task nhanh hon | Danh sach lon van de thao tac |
-| T4 | Cai thien task evidence picker | Hien cong thuc mini ngay duoi picker cho V2 delivery criterion | 0.25 | UI minh bach | Reviewer doi soat duoc selected tasks -> diem |
-| T5 | Jira data quality va auto fill Story Point | Chay auto fill Story Point tren DB hien tai, log so task da cap nhat/bo qua | 0.5 | Batch update on demand | Co summary: updated/skipped/errors |
-| T5 | Jira data quality va auto fill Story Point | Them dry-run mode cho auto fill de preview truoc khi ghi DB | 0.5 | Preview an toan | Bam dry-run khong lam doi data |
-| T5 | Jira data quality va auto fill Story Point | Them audit log cho auto fill Story Point | 0.25 | Audit truy vet duoc | Audit hien ai chay, luc nao, so record |
-| T6 | Database va state consistency | Kiem tra lai cac man hinh doc/ghi cung 1 source backend state, tranh localStorage shadow data | 0.75 | State source-of-truth ro | Refresh/may khac van thay cung du lieu |
-| T6 | Database va state consistency | Them migration/seed nho cho review period, formula version, users demo neu DB moi | 0.75 | DB moi co data khoi tao | Docker up lan dau khong trang rong bat thuong |
-| T6 | Database va state consistency | Them backup/restore smoke check cho PostgreSQL | 0.5 | Kich ban khoi phuc | Backup file tao duoc va restore test qua |
-| T7 | Auth/RBAC san sang noi bo | Thay demo headers bang middleware de sau nay gan SSO/JWT/reverse proxy | 0.75 | Auth boundary ro | Khong tin role tu browser neu deploy production |
-| T7 | Auth/RBAC san sang noi bo | Enforcement tren API: Admin/Leader/Member/Viewer cho state, formula, audit, sync | 1.0 | API khong vuot quyen | Test role pass/fail ro |
-| T7 | Auth/RBAC san sang noi bo | UI hide/disable action theo role, kem message khi khong co quyen | 0.5 | UX dung role | Member khong thay nut admin nguy hiem |
-| T8 | Jira sync automation | Them scheduler sync theo config gio/ngay, co lock Redis de tranh chay trung | 0.75 | Auto sync | 2 instance khong sync trung |
-| T8 | Jira sync automation | Them sync history detail: JQL, duration, total, mapped, unmapped, warning count | 0.5 | Lich su sync ro | Admin doi soat tung lan sync |
-| T8 | Jira sync automation | Them retry/backoff va error state de UI hien loi Jira de hieu | 0.5 | Sync ben hon | Jira fail khong lam UI treo |
-| T9 | Bao cao va export | Export Excel theo ky: ranking, chi tiet member, task evidence, formula version | 0.75 | File Excel | File mo duoc, so lieu khop UI |
-| T9 | Bao cao va export | Export JSON snapshot de doi soat/audit | 0.25 | File JSON | Co period, formula checksum, scores, evidence |
-| T9 | Bao cao va export | Them filter audit log theo period/user/action | 0.5 | Audit usable | Admin tim duoc thay doi diem cua 1 member |
-| T10 | Public/hosting deployment | Xac minh quyen deploy Sites hoac chuyen sang portable hosting rieng | 0.5 | Chot duong deploy | Khong con tinh trang local moi hon public |
-| T10 | Public/hosting deployment | Viet script/checklist deploy 1 lenh cho moi truong chon | 0.5 | Deploy repeatable | Member moi deploy lai duoc |
-| T10 | Public/hosting deployment | Smoke test public: version asset, API health, task picker, V2 scoring | 0.5 | Public latest | Public co commit/asset moi nhat |
-| T11 | QA hoi quy | Chay full unit/smoke tests, build, Docker rebuild | 0.5 | Test report | All tests pass |
-| T11 | QA hoi quy | Playwright QA cac flow chinh: sync Jira, Task Jira pagination/filter, danh gia member, V1/V2, formula, audit | 1.0 | QA notes | Khong co console/page error nghiem trong |
-| T11 | QA hoi quy | Cross-browser quick check Chrome/Edge desktop | 0.25 | Browser check | Layout khong vo o viewport desktop |
-| T12 | Handover | Cap nhat changelog, commit message, PR description, screenshots truoc/sau neu co UI | 0.5 | PR san review | Reviewer doc PR la nam duoc scope |
+| T1 | Onboard và đồng bộ môi trường | Clone/pull `main`, checkout từ commit mới nhất, cài dependency, tạo `.env`, chạy Docker stack | 0.25 | Local app chạy được | Mở `http://localhost:8081`, backend health ok |
+| T1 | Onboard và đồng bộ môi trường | Đọc `README.md`, `PROJECT_HANDOVER.md`, `PRODUCTION_SUITE.md`, `DEPLOYMENT_PORTABLE.md`, file plan này | 0.25 | Nắm được kiến trúc | Member giải thích được luồng Jira -> DB -> UI -> điểm KPI |
+| T2 | Cập nhật docs theo trạng thái mới | Sửa docs cũ còn nói localStorage/memory token thành trạng thái mới: DB, Docker, V1/V2, Story Point autofill | 0.5 | Docs không lệch code | Handover doc khớp tính năng hiện tại |
+| T2 | Cập nhật docs theo trạng thái mới | Bổ sung troubleshooting: public site chưa update, hosting project inaccessible, cách deploy portable | 0.25 | Hướng dẫn vận hành rõ hơn | Member mới không nhầm public đã là latest |
+| T3 | Khóa chặt scoring V1/V2 | Tạo test case cho V1: slider thủ công, task evidence chỉ làm minh chứng, điểm đổi theo slider | 0.5 | Regression test V1 | V1 không bị logic Story Point ảnh hưởng |
+| T3 | Khóa chặt scoring V1/V2 | Tạo test case cho V2: thêm/bỏ task, task thiếu deadline/SP, on-time/off-time, score cập nhật ngay | 0.75 | Regression test V2 | Chọn task thay đổi thì delivery score và total score cập nhật |
+| T3 | Khóa chặt scoring V1/V2 | UI copy giải thích rõ: điểm có thể không đổi nếu tỷ lệ đạt không đổi | 0.25 | Tooltip/text ngắn trong modal | User hiểu vì sao thêm/bớt task có lúc điểm vẫn bằng nhau |
+| T4 | Cải thiện task evidence picker | Thêm count theo nhóm: selected, on-time, late, missing deadline, missing story point | 0.75 | Picker có summary | Mở dropdown nhìn được chất lượng task đang chọn |
+| T4 | Cải thiện task evidence picker | Thêm filter trong picker: tất cả, done, late, missing SP, missing deadline | 0.75 | Chọn task nhanh hơn | Danh sách lớn vẫn dễ thao tác |
+| T4 | Cải thiện task evidence picker | Hiện công thức mini ngay dưới picker cho V2 delivery criterion | 0.25 | UI minh bạch | Reviewer đối soát được selected tasks -> điểm |
+| T5 | Jira data quality và auto fill Story Point | Chạy auto fill Story Point trên DB hiện tại, log số task đã cập nhật/bỏ qua | 0.5 | Batch update on demand | Có summary: updated/skipped/errors |
+| T5 | Jira data quality và auto fill Story Point | Thêm dry-run mode cho auto fill để preview trước khi ghi DB | 0.5 | Preview an toàn | Bấm dry-run không làm đổi data |
+| T5 | Jira data quality và auto fill Story Point | Thêm audit log cho auto fill Story Point | 0.25 | Audit truy vết được | Audit hiện ai chạy, lúc nào, số record |
+| T6 | Database và state consistency | Kiểm tra lại các màn hình đọc/ghi cùng 1 source backend state, tránh localStorage shadow data | 0.75 | State source-of-truth rõ | Refresh/máy khác vẫn thấy cùng dữ liệu |
+| T6 | Database và state consistency | Thêm migration/seed nhỏ cho review period, formula version, users demo nếu DB mới | 0.75 | DB mới có data khởi tạo | Docker up lần đầu không trắng rỗng bất thường |
+| T6 | Database và state consistency | Thêm backup/restore smoke check cho PostgreSQL | 0.5 | Kịch bản khôi phục | Backup file tạo được và restore test qua |
+| T7 | Auth/RBAC sẵn sàng nội bộ | Thay demo headers bằng middleware để sau này gắn SSO/JWT/reverse proxy | 0.75 | Auth boundary rõ | Không tin role từ browser nếu deploy production |
+| T7 | Auth/RBAC sẵn sàng nội bộ | Enforcement trên API: Admin/Leader/Member/Viewer cho state, formula, audit, sync | 1.0 | API không vượt quyền | Test role pass/fail rõ |
+| T7 | Auth/RBAC sẵn sàng nội bộ | UI hide/disable action theo role, kèm message khi không có quyền | 0.5 | UX đúng role | Member không thấy nút admin nguy hiểm |
+| T8 | Jira sync automation | Thêm scheduler sync theo config giờ/ngày, có lock Redis để tránh chạy trùng | 0.75 | Auto sync | 2 instance không sync trùng |
+| T8 | Jira sync automation | Thêm sync history detail: JQL, duration, total, mapped, unmapped, warning count | 0.5 | Lịch sử sync rõ | Admin đối soát từng lần sync |
+| T8 | Jira sync automation | Thêm retry/backoff và error state để UI hiện lỗi Jira dễ hiểu | 0.5 | Sync bền hơn | Jira fail không làm UI treo |
+| T9 | Báo cáo và export | Export Excel theo kỳ: ranking, chi tiết member, task evidence, formula version | 0.75 | File Excel | File mở được, số liệu khớp UI |
+| T9 | Báo cáo và export | Export JSON snapshot để đối soát/audit | 0.25 | File JSON | Có period, formula checksum, scores, evidence |
+| T9 | Báo cáo và export | Thêm filter audit log theo period/user/action | 0.5 | Audit usable | Admin tìm được thay đổi điểm của 1 member |
+| T10 | Public/hosting deployment | Xác minh quyền deploy Sites hoặc chuyển sang portable hosting riêng | 0.5 | Chốt đường deploy | Không còn tình trạng local mới hơn public |
+| T10 | Public/hosting deployment | Viết script/checklist deploy 1 lệnh cho môi trường chọn | 0.5 | Deploy repeatable | Member mới deploy lại được |
+| T10 | Public/hosting deployment | Smoke test public: version asset, API health, task picker, V2 scoring | 0.5 | Public latest | Public có commit/asset mới nhất |
+| T11 | QA hồi quy | Chạy full unit/smoke tests, build, Docker rebuild | 0.5 | Test report | All tests pass |
+| T11 | QA hồi quy | Playwright QA các flow chính: sync Jira, Task Jira pagination/filter, đánh giá member, V1/V2, formula, audit | 1.0 | QA notes | Không có console/page error nghiêm trọng |
+| T11 | QA hồi quy | Cross-browser quick check Chrome/Edge desktop | 0.25 | Browser check | Layout không vỡ ở viewport desktop |
+| T12 | Handover | Cập nhật changelog, commit message, PR description, screenshots trước/sau nếu có UI | 0.5 | PR sẵn review | Reviewer đọc PR là nắm được scope |
 
-## 5. Goi y chia sprint
+## 5. Gợi ý chia sprint
 
-### Sprint 1 - Stabilize scoring va docs
+### Sprint 1 - Stabilize scoring và docs
 
 Scope: T1, T2, T3, T4
 
-Du kien: **3.5 - 4 manday**
+Dự kiến: **3.5 - 4 manday**
 
-Muc tieu: member moi vao nam duoc project, V1/V2 khong bi hoi quy, task picker minh bach hon.
+Mục tiêu: member mới vào nắm được project, V1/V2 không bị hồi quy, task picker minh bạch hơn.
 
-### Sprint 2 - Data va Jira quality
+### Sprint 2 - Data và Jira quality
 
 Scope: T5, T6, T8
 
-Du kien: **4 - 4.75 manday**
+Dự kiến: **4 - 4.75 manday**
 
-Muc tieu: DB/state on dinh, Jira sync va Story Point data quality dung de cham that.
+Mục tiêu: DB/state ổn định, Jira sync và Story Point data quality đủ tin để chấm thật.
 
-### Sprint 3 - Production readiness va bao cao
+### Sprint 3 - Production readiness và báo cáo
 
 Scope: T7, T9, T10, T11, T12
 
-Du kien: **5 - 6.25 manday**
+Dự kiến: **5 - 6.25 manday**
 
-Muc tieu: co quyen, export, deploy repeatable, public/latest ro rang, san sang cho pilot noi bo.
+Mục tiêu: có quyền, export, deploy repeatable, public/latest rõ ràng, sẵn sàng cho pilot nội bộ.
 
-Neu can rut gon de demo nhanh, lam Sprint 1 + T10 truoc: **4 - 4.5 manday**.
+Nếu cần rút gọn để demo nhanh, làm Sprint 1 + T10 trước: **4 - 4.5 manday**.
 
 ## 6. Definition of Done chung
 
-- Code da commit tren branch va PR co mo ta scope.
+- Code đã commit trên branch và PR có mô tả scope.
 - `npm test` pass.
 - `npm run build` pass.
-- Docker stack chay duoc local.
-- Khong commit token Jira, `.env`, DB dump that.
-- UI khong co console/page error trong flow chinh.
-- Moi thay doi cong thuc co text giai thich tren UI va test.
-- Moi API ghi data co audit log neu anh huong ket qua KPI.
+- Docker stack chạy được local.
+- Không commit token Jira, `.env`, DB dump thật.
+- UI không có console/page error trong flow chính.
+- Mỗi thay đổi công thức có text giải thích trên UI và test.
+- Mỗi API ghi data có audit log nếu ảnh hưởng kết quả KPI.
 
-## 7. Rui ro can canh chung
+## 7. Rủi ro cần canh chừng
 
-| Rui ro | Anh huong | Cach xu ly |
+| Rủi ro | Ảnh hưởng | Cách xử lý |
 |---|---|---|
-| Public hosting khong cap nhat duoc | User thay ban cu, nham la bug chua fix | Chot lai quyen deploy hoac dung portable hosting rieng |
-| Jira field Story Point khac project | Diem V2 sai | Cho cau hinh field theo project/team va hien warning |
-| Task thieu deadline/SP nhieu | V2 co the ra diem thap/bang 0 | Hien data-quality summary va cho auto fill/dry-run |
-| V1/V2 bi tron logic | Ket qua KPI khong doi soat duoc | Test rieng V1/V2 va snapshot formula theo ky |
-| Demo RBAC headers bi dung production | Vuot quyen | Bat buoc dat sau SSO/JWT/reverse proxy truoc go-live |
+| Public hosting không cập nhật được | User thấy bản cũ, nhầm là bug chưa fix | Chốt lại quyền deploy hoặc dùng portable hosting riêng |
+| Jira field Story Point khác project | Điểm V2 sai | Cho cấu hình field theo project/team và hiện warning |
+| Task thiếu deadline/SP nhiều | V2 có thể ra điểm thấp/bằng 0 | Hiện data-quality summary và cho auto fill/dry-run |
+| V1/V2 bị trộn logic | Kết quả KPI không đối soát được | Test riêng V1/V2 và snapshot formula theo kỳ |
+| Demo RBAC headers bị dùng production | Vượt quyền | Bắt buộc đặt sau SSO/JWT/reverse proxy trước go-live |
 
