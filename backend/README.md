@@ -1,39 +1,45 @@
-# Backend KPI – Jira Data Center connector
+# KPI backend
 
-Backend tối giản dùng Node.js native, không lưu token ở frontend.
+Native Node.js API for authentication, KPI state, snapshots and Jira Data Center synchronization.
 
-## Cấu hình
+## Local setup
 
-1. Copy `.env.example` thành `.env`.
-2. Điền `JIRA_BASE_URL`, `JIRA_PROJECT_KEY` và `JIRA_TOKEN`.
-3. Dùng `JIRA_AUTH_TYPE=pat` cho Personal Access Token. Nếu Jira DC dùng Basic Auth, đặt `JIRA_AUTH_TYPE=basic` và điền thêm `JIRA_USER`.
-
-## Đăng nhập email/password
-
-Backend xác thực bằng JWT trong cookie `HttpOnly`. Thiết lập các biến sau trong `.env` trước lần chạy đầu:
-
-```env
-APP_ORIGIN=https://kpi.example.internal
-JWT_SECRET=<chuỗi ngẫu nhiên dài, chỉ lưu trong secret manager>
-ADMIN_EMAIL=admin@example.com
-ADMIN_PASSWORD=<mật khẩu bootstrap ít nhất 12 ký tự>
-```
-
-Tài khoản Admin bootstrap chỉ được tạo khi email chưa tồn tại. Đổi mật khẩu bootstrap và quản lý user qua quy trình quản trị riêng trước khi go-live; không commit `.env` hoặc `JWT_SECRET`.
-
-## Chạy
-
-```text
+```powershell
+Copy-Item .env.example .env
+npm install
 npm start
 ```
 
-API chính:
+Default port: `8788`.
 
-- `GET /api/health` – kiểm tra backend đã cấu hình Jira chưa.
-- `GET /api/jira/test` – kiểm tra xác thực với Jira.
-- `GET /api/jira/issues?jql=...` – lấy issue theo JQL.
-- `GET /api/sync` – lấy và chuẩn hóa task cho KPI.
+Required local auth variables:
 
-`/api/sync` có pagination và giới hạn tổng số issue bằng `JIRA_SYNC_MAX_ISSUES` (mặc định 1000). Có thể truyền `maxIssues`, `maxResults`, `project` hoặc `jql` để giới hạn phạm vi đồng bộ.
+```env
+APP_ORIGIN=http://localhost:5175,http://127.0.0.1:5175
+JWT_SECRET=local-only-secret
+ADMIN_EMAIL=admin@localhost
+ADMIN_PASSWORD=ChangeMe2026!
+```
 
-Backend cần chạy trên máy/server có thể truy cập được Jira Data Center qua mạng nội bộ hoặc VPN. Cấu hình mặc định mẫu đang lấy project `BE`, label `Sprint26`, sắp xếp theo `lastViewed DESC`; có thể thay `JIRA_DEFAULT_JQL` theo kỳ/sprint thực tế.
+For Jira, set `JIRA_BASE_URL`, `JIRA_PROJECT_KEY`, `JIRA_TOKEN` and the relevant field/status variables. PAT uses Bearer auth; Basic auth also requires `JIRA_USER` and `JIRA_AUTH_TYPE=basic`.
+
+## Storage
+
+- Default: SQLite at `DB_PATH` (local development).
+- Production: set `DB_DRIVER=postgres` and `DATABASE_URL`.
+- `REDIS_URL` enables distributed Jira sync lock; without it the process uses an in-memory fallback lock.
+
+## API
+
+See [API reference](../docs/API_REFERENCE.md). Business routes require the `kpi_session` HttpOnly JWT cookie.
+
+## Jira sync options
+
+```env
+JIRA_SYNC_MAX_ISSUES=1000
+JIRA_RETRY_ATTEMPTS=3
+JIRA_REQUEST_TIMEOUT_MS=15000
+JIRA_SYNC_INTERVAL_MINUTES=0
+```
+
+Set the interval above zero to enable the backend scheduler. Keep Jira credentials in environment variables or a secret manager; never commit `.env`.

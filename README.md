@@ -1,36 +1,56 @@
 # Backend KPI Performance
 
-Webapp đánh giá KPI cho phòng Backend, có tính điểm theo tiêu chí cha/con, so sánh workload liên nhóm và đồng bộ task từ Jira Data Center.
+Webapp đánh giá KPI cho phòng Backend, kết hợp điểm tiêu chí, workload/story point và task Jira Data Center. Sản phẩm có dashboard trưởng phòng, đối soát KPI tới từng task, audit log, snapshot bất biến và workflow khóa kỳ.
 
-## Tài liệu bàn giao
-
-- [Tài liệu tổng quan và bàn giao](docs/PROJECT_HANDOVER.md)
-- [Kế hoạch triển khai](docs/IMPLEMENTATION_PLAN.md)
-- [Runbook vận hành](docs/OPERATIONS_RUNBOOK.md)
-- [Changelog](docs/CHANGELOG.md)
-
-## Chạy nhanh
+## Bắt đầu nhanh
 
 ```powershell
+git clone https://github.com/tnhminh/backend-kpi-performance.git
+cd backend-kpi-performance
+npm install
 cd backend
+npm install
+Copy-Item .env.example .env
 npm start
 ```
 
-Frontend có thể chạy từ `outputs/backend-kpi-app` trên port `5174`. Xem tài liệu bàn giao để biết cấu hình Jira, công thức và checklist production.
+Terminal khác:
 
-## Deploy portable
-
-Project production đã bao gồm frontend, backend, PostgreSQL, Redis, Nginx, health check và backup trong Docker Compose. Trên server Linux có Docker:
-
-```sh
-cp .env.production.example .env
-# điền POSTGRES_PASSWORD và cấu hình Jira trong .env
-./scripts/deploy.sh
+```powershell
+cd backend-kpi-performance
+npm run build
+python -m http.server 5175 --directory dist/client
 ```
 
-Chi tiết xem [hướng dẫn deploy portable](docs/DEPLOYMENT_PORTABLE.md).
+Mở `http://127.0.0.1:5175/`. Tài khoản local mặc định nằm trong `backend/.env`; không dùng thông tin local khi deploy production.
 
-## Public demo
+## Tài liệu bắt buộc
 
-https://backend-kpi-performance.ngaquyenphamquyen682.chatgpt.site
+- [Getting started](docs/GETTING_STARTED.md) — clone, chạy local, test.
+- [Architecture](docs/ARCHITECTURE.md) — frontend/backend/API/DB/auth/workflow.
+- [Project context](docs/PROJECT_CONTEXT.md) — KPI formula, Jira fields, module map.
+- [API reference](docs/API_REFERENCE.md) — endpoint và quyền.
+- [Contributing](docs/CONTRIBUTING.md) — quy tắc sửa code và kiểm thử.
+- [Project handover](docs/PROJECT_HANDOVER.md) — bàn giao chi tiết.
+- [Current status](docs/CURRENT_STATUS.md) — những gì đã build và lưu ý production.
+- [Operations runbook](docs/OPERATIONS_RUNBOOK.md) — xử lý sự cố.
+- [Portable deployment](docs/DEPLOYMENT_PORTABLE.md) — Docker/PostgreSQL/Redis production.
 
+## Kiểm tra trước khi bàn giao
+
+```powershell
+npm test
+npm run build
+node tests/auth-browser-check.mjs
+git diff --check
+```
+
+## Kiến trúc runtime
+
+- Frontend: HTML/CSS/JavaScript native, build vào `dist/client`.
+- Backend: Node.js native tại port `8788`.
+- Local DB: SQLite; production: PostgreSQL.
+- Redis: distributed lock cho Jira sync production.
+- Auth: email/password + scrypt + HttpOnly JWT cookie.
+
+Token Jira và secret chỉ được cấu hình qua environment/secret manager, không commit vào repository.
