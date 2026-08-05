@@ -45,6 +45,10 @@ try {
   assert.equal(await page.locator('.reconciliation-export-actions button').count(), 3);
   await page.locator('.reconciliation-row').first().click();
   await page.locator('.reconciliation-detail-head').waitFor();
+  await page.locator('.module-btn[data-module="managerDashboard"]').click();
+  await page.locator('#managerDashboardRoot').waitFor();
+  await page.locator('.manager-kpi-cards').waitFor();
+  assert.equal(await page.locator('.manager-chart-panel').count(), 4);
   await page.locator('.module-btn[data-module="settings"]').click();
   await page.locator('.user-admin-panel').waitFor();
   await page.locator('.user-admin-row').first().waitFor();

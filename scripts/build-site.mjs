@@ -13,6 +13,7 @@ const staticFiles = [
   'mock-jira-data.js',
   'reconciliation.js',
   'users-admin.js',
+  'manager-dashboard.js',
   'styles.css',
   'tour-fix.js',
   'tour-fix.css',
