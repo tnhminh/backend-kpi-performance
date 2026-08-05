@@ -4,7 +4,7 @@ Bộ tài liệu dùng để khởi tạo nhanh các webapp KPI tương tự cho
 
 ## Cách sử dụng
 
-1. Copy nguyên thư mục `docs/reusable-kpi-kit` sang project mới.
+1. Copy nguyên thư mục `templates/reusable-kpi-kit` sang project mới.
 2. Mở [PROJECT_CONTEXT_TEMPLATE.md](PROJECT_CONTEXT_TEMPLATE.md).
 3. Thay toàn bộ placeholder dạng `[TEN_DU_AN]`, `[TEAM]`, `[JIRA_URL]`.
 4. Đổi tên `PROJECT_CONTEXT_TEMPLATE.md` thành `PROJECT_CONTEXT.md` sau khi điền.

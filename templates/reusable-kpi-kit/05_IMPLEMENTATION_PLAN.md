@@ -1,5 +1,7 @@
 # Implementation Plan – [TEN_DU_AN]
 
+> Reusable template; not current application documentation.
+
 ## Phase 1 – Discovery
 
 - [ ] Chốt team/member/role.

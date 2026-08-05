@@ -1,5 +1,7 @@
 # Product Requirements – [TEN_DU_AN]
 
+> Reusable template; not current application documentation.
+
 ## 1. Mục tiêu
 
 Xây dựng hệ thống đánh giá hiệu suất cho `[PHONG_BAN]`, giúp Admin/Leader:

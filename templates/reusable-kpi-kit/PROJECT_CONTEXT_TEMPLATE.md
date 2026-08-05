@@ -1,5 +1,7 @@
 # Project Context – [TEN_DU_AN]
 
+> Reusable template; not current application documentation.
+
 ## 1. Thông tin chung
 
 - Tên hệ thống: `[TEN_DU_AN]`

@@ -1,6 +1,6 @@
 # Documentation index
 
-AI agent mới phải đọc các file root theo thứ tự: `AGENTS.md` → `MEMORY.md` → `STATUS.md` → `NEXT.md` → `AI_HANDOFF.md`.
+AI agent mới phải đọc các file root theo thứ tự: `AGENTS.md` → `MEMORY.md` → `STATUS.md` → `NEXT.md`.
 
 ## New developer
 
@@ -19,11 +19,16 @@ AI agent mới phải đọc các file root theo thứ tự: `AGENTS.md` → `ME
 
 ## Operations and handover
 
-- [Current status](CURRENT_STATUS.md)
+- [Current status](../STATUS.md)
 - [Project handover](PROJECT_HANDOVER.md)
 - [Operations runbook](OPERATIONS_RUNBOOK.md)
 - [Portable deployment](DEPLOYMENT_PORTABLE.md)
 - [Test and release matrix](TEST_RELEASE_MATRIX.md)
 - [Changelog](CHANGELOG.md)
 
-Files under `reusable-kpi-kit/` are reusable templates/reference material, not the authoritative status of this application. Planning documents describe historical or future work; use `CURRENT_STATUS.md` for implemented scope.
+## Reference only
+
+- `archive/`: kế hoạch và implementation snapshot lịch sử.
+- `../templates/reusable-kpi-kit/`: template tái sử dụng cho project khác.
+
+Files under `../templates/` are reusable reference material. Planning documents under `archive/` are historical. Use `../STATUS.md` for implemented scope.

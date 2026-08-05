@@ -1,5 +1,7 @@
 # Handover Checklist – [TEN_DU_AN]
 
+> Reusable template; not current application documentation.
+
 ## Tài liệu
 
 - [ ] Project context đã điền.

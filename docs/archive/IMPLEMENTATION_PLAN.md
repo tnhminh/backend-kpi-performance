@@ -1,6 +1,6 @@
 # Kế hoạch triển khai Backend KPI Performance
 
-> Historical plan. Không dùng file này để xác định trạng thái hiện tại. Xem `../STATUS.md` và `../NEXT.md`.
+> Historical plan. Không dùng file này để xác định trạng thái hiện tại. Xem `../../STATUS.md` và `../../NEXT.md`.
 
 ## Mục tiêu
 

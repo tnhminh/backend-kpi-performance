@@ -1,5 +1,7 @@
 # Jira Integration Specification – [TEN_DU_AN]
 
+> Reusable template; not current application documentation.
+
 ## 1. Mục tiêu tích hợp
 
 Đọc task Jira theo kỳ/project, normalize dữ liệu và đưa vào KPI. MVP dùng read-only API.

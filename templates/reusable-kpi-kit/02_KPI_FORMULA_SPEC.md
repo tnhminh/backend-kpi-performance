@@ -1,5 +1,7 @@
 # KPI Formula Specification – [TEN_DU_AN]
 
+> Reusable template; not current application documentation.
+
 ## 1. Nguyên tắc
 
 - Công thức là source of truth của hệ thống.

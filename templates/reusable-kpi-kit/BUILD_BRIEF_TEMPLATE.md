@@ -1,8 +1,10 @@
 # Build Brief – Dùng để giao cho agent/team triển khai
 
+> Reusable template; not current application documentation.
+
 Bạn đang xây dựng `[TEN_DU_AN]` cho `[PHONG_BAN]`.
 
-Hãy đọc toàn bộ file trong thư mục `docs/reusable-kpi-kit` trước khi code, đặc biệt:
+Hãy đọc toàn bộ file trong thư mục `templates/reusable-kpi-kit` trước khi code, đặc biệt:
 
 1. `PROJECT_CONTEXT.md` đã được điền từ `PROJECT_CONTEXT_TEMPLATE.md`.
 2. `01_PRODUCT_REQUIREMENTS.md`.

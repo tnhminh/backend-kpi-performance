@@ -1,5 +1,7 @@
 # Production Build Plan – [TEN_DU_AN]
 
+> Reusable template; not current application documentation.
+
 Plan triển khai production đầy đủ cho hệ thống KPI có frontend, backend, database, API và tích hợp Jira.
 
 ## 1. Kiến trúc production

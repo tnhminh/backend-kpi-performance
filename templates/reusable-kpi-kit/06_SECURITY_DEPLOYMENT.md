@@ -1,5 +1,7 @@
 # Security & Deployment – [TEN_DU_AN]
 
+> Reusable template; not current application documentation.
+
 ## 1. Secret policy
 
 - Không commit PAT, password, API key, cookie hoặc bearer token.

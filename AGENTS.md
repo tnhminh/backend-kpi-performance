@@ -12,7 +12,7 @@ Before changing code, read completely:
 4. `docs/PROJECT_CONTEXT.md` — KPI/Jira business context.
 5. The relevant technical document under `docs/` for the requested area.
 
-Historical plans and `docs/reusable-kpi-kit/` are references, not current application truth. When they conflict, use `STATUS.md`, current code and automated tests.
+Historical plans under `docs/archive/` and templates under `templates/` are references, not current application truth. When they conflict, use `STATUS.md`, current code and automated tests.
 
 ## Project commands
 
@@ -57,4 +57,12 @@ python -m http.server 5175 --directory dist/client
 
 ## End-of-session handoff
 
-Follow `AI_HANDOFF.md`. State what changed, tests run, remaining risk, current branch/commit and whether code was pushed.
+Update when applicable:
+
+- `STATUS.md`: newly implemented or verified behavior.
+- `NEXT.md`: completed items removed or newly discovered risks.
+- `MEMORY.md`: stable new invariants only.
+- `DECISIONS.md`: durable decisions and tradeoffs.
+- `docs/CHANGELOG.md`: release-visible changes.
+
+Report the outcome, files/features changed, tests and results, known risks, branch/commit, push status and local runtime status. Never claim production readiness based only on local tests.

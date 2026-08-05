@@ -38,7 +38,7 @@ AI/new contributor nên bắt đầu từ [AGENTS.md](AGENTS.md), sau đó đọ
 - [RBAC matrix](docs/RBAC_MATRIX.md) — quyền theo role và workflow.
 - [Contributing](docs/CONTRIBUTING.md) — quy tắc sửa code và kiểm thử.
 - [Project handover](docs/PROJECT_HANDOVER.md) — bàn giao chi tiết.
-- [Current status](docs/CURRENT_STATUS.md) — những gì đã build và lưu ý production.
+- [Current status](STATUS.md) — những gì đã build, đã test và lưu ý production.
 - [Operations runbook](docs/OPERATIONS_RUNBOOK.md) — xử lý sự cố.
 - [Portable deployment](docs/DEPLOYMENT_PORTABLE.md) — Docker/PostgreSQL/Redis production.
 - [Test/release matrix](docs/TEST_RELEASE_MATRIX.md) — quality gates và rollback.
@@ -50,7 +50,6 @@ AI/new contributor nên bắt đầu từ [AGENTS.md](AGENTS.md), sau đó đọ
 - [STATUS.md](STATUS.md) — trạng thái build/test hiện tại.
 - [NEXT.md](NEXT.md) — backlog ưu tiên và phần chưa hoàn thành.
 - [DECISIONS.md](DECISIONS.md) — quyết định kiến trúc/nghiệp vụ.
-- [AI_HANDOFF.md](AI_HANDOFF.md) — checklist đầu/cuối phiên làm việc.
 
 ## Kiểm tra trước khi bàn giao
 

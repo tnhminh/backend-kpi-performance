@@ -1,6 +1,6 @@
 # Backend KPI Performance - Kế hoạch build tiếp bằng vibecode
 
-> Historical planning snapshot. Backlog hiện hành nằm ở `../NEXT.md`; trạng thái đã build nằm ở `../STATUS.md`.
+> Historical planning snapshot. Backlog hiện hành nằm ở `../../NEXT.md`; trạng thái đã build nằm ở `../../STATUS.md`.
 
 ## 1. Baseline hiện tại
 

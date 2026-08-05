@@ -1,5 +1,7 @@
 # System Architecture – [TEN_DU_AN]
 
+> Reusable template; not current application documentation.
+
 ## 1. Kiến trúc đề xuất
 
 ```text
