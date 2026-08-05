@@ -1,5 +1,7 @@
 # Kế hoạch triển khai Backend KPI Performance
 
+> Historical plan. Không dùng file này để xác định trạng thái hiện tại. Xem `../STATUS.md` và `../NEXT.md`.
+
 ## Mục tiêu
 
 Chuyển prototype hiện tại thành hệ thống có thể vận hành thật cho các team Backend, đồng bộ Jira Data Center và bảo đảm công thức KPI/audit có thể kiểm tra lại.

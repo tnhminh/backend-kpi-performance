@@ -1,5 +1,7 @@
 # Production hardening suite
 
+> Historical implementation note. Xem `../STATUS.md`, `PROJECT_HANDOVER.md` và `TEST_RELEASE_MATRIX.md` để biết trạng thái hiện hành.
+
 ## Phạm vi đã triển khai
 
 1. **Regression tests**

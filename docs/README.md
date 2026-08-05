@@ -1,5 +1,7 @@
 # Documentation index
 
+AI agent mới phải đọc các file root theo thứ tự: `AGENTS.md` → `MEMORY.md` → `STATUS.md` → `NEXT.md` → `AI_HANDOFF.md`.
+
 ## New developer
 
 1. [Getting started](GETTING_STARTED.md)

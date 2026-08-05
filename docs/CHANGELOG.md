@@ -9,6 +9,7 @@
 - Thêm mock Jira 156 issues, task evidence và data-quality warnings.
 - Thêm Dashboard trưởng phòng, Đối soát KPI và export Excel/JSON/print-PDF.
 - Chuẩn hóa bộ docs onboarding, architecture, API, database, RBAC, KPI example, operations và release.
+- Thêm bộ AI handoff ở root: `AGENTS.md`, `MEMORY.md`, `STATUS.md`, `NEXT.md`, `DECISIONS.md`, `AI_HANDOFF.md`.
 
 ## 2026-07-28
 

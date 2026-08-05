@@ -26,6 +26,8 @@ Mở `http://127.0.0.1:5175/`. Tài khoản local mặc định nằm trong `bac
 
 ## Tài liệu bắt buộc
 
+AI/new contributor nên bắt đầu từ [AGENTS.md](AGENTS.md), sau đó đọc [MEMORY.md](MEMORY.md), [STATUS.md](STATUS.md) và [NEXT.md](NEXT.md).
+
 - [Getting started](docs/GETTING_STARTED.md) — clone, chạy local, test.
 - [Architecture](docs/ARCHITECTURE.md) — frontend/backend/API/DB/auth/workflow.
 - [Database schema](docs/DATABASE_SCHEMA.md) — tables, migration và recovery.
@@ -40,6 +42,15 @@ Mở `http://127.0.0.1:5175/`. Tài khoản local mặc định nằm trong `bac
 - [Operations runbook](docs/OPERATIONS_RUNBOOK.md) — xử lý sự cố.
 - [Portable deployment](docs/DEPLOYMENT_PORTABLE.md) — Docker/PostgreSQL/Redis production.
 - [Test/release matrix](docs/TEST_RELEASE_MATRIX.md) — quality gates và rollback.
+
+## AI handoff files
+
+- [AGENTS.md](AGENTS.md) — chỉ dẫn bắt buộc cho AI agent.
+- [MEMORY.md](MEMORY.md) — ngữ cảnh ổn định và invariants.
+- [STATUS.md](STATUS.md) — trạng thái build/test hiện tại.
+- [NEXT.md](NEXT.md) — backlog ưu tiên và phần chưa hoàn thành.
+- [DECISIONS.md](DECISIONS.md) — quyết định kiến trúc/nghiệp vụ.
+- [AI_HANDOFF.md](AI_HANDOFF.md) — checklist đầu/cuối phiên làm việc.
 
 ## Kiểm tra trước khi bàn giao
 
