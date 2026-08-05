@@ -65,6 +65,9 @@ workloadResult = function (member) {
 
 function formulaDefinition() {
   return {
+    standard: 'Backend KPI Performance',
+    scoringVersion: 'v2.1',
+    sourceOfTruth: 'production-suite.js',
     crossTeam: { completion: .30, effort: .35, qualityKpi: .25, predictability: .10, absoluteWeight: .75, teamIndexWeight: .25 },
     criteria: Object.fromEntries(Object.keys(groups).map(team => [team, criteriaFor(team).map(row => [row[0], Number(row[1])])]))
   };
@@ -108,7 +111,8 @@ async function pushPeriodToBackend(showToast = true) {
         period: period.value,
         status: currentStatus(),
         state,
-        formulaVersionId: null
+        formulaVersionId: currentFormulaVersion().version,
+        formula: currentFormulaVersion().formula
       })
     });
     const data = await response.json();

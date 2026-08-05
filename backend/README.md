@@ -8,6 +8,19 @@ Backend tối giản dùng Node.js native, không lưu token ở frontend.
 2. Điền `JIRA_BASE_URL`, `JIRA_PROJECT_KEY` và `JIRA_TOKEN`.
 3. Dùng `JIRA_AUTH_TYPE=pat` cho Personal Access Token. Nếu Jira DC dùng Basic Auth, đặt `JIRA_AUTH_TYPE=basic` và điền thêm `JIRA_USER`.
 
+## Đăng nhập email/password
+
+Backend xác thực bằng JWT trong cookie `HttpOnly`. Thiết lập các biến sau trong `.env` trước lần chạy đầu:
+
+```env
+APP_ORIGIN=https://kpi.example.internal
+JWT_SECRET=<chuỗi ngẫu nhiên dài, chỉ lưu trong secret manager>
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=<mật khẩu bootstrap ít nhất 12 ký tự>
+```
+
+Tài khoản Admin bootstrap chỉ được tạo khi email chưa tồn tại. Đổi mật khẩu bootstrap và quản lý user qua quy trình quản trị riêng trước khi go-live; không commit `.env` hoặc `JWT_SECRET`.
+
 ## Chạy
 
 ```text

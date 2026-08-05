@@ -14,6 +14,8 @@ export function createStore(databasePath = process.env.DB_PATH || defaultPath) {
       id TEXT PRIMARY KEY,
       display_name TEXT NOT NULL,
       role TEXT NOT NULL CHECK(role IN ('Member','Leader','Admin')),
+      email TEXT,
+      password_hash TEXT,
       team TEXT,
       active INTEGER NOT NULL DEFAULT 1,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -31,6 +33,13 @@ export function createStore(databasePath = process.env.DB_PATH || defaultPath) {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       version TEXT NOT NULL UNIQUE,
       formula_json TEXT NOT NULL,
+      checksum TEXT NOT NULL,
+      created_by TEXT,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS period_snapshots (
+      period TEXT PRIMARY KEY,
+      snapshot_json TEXT NOT NULL,
       checksum TEXT NOT NULL,
       created_by TEXT,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -66,6 +75,10 @@ export function createStore(databasePath = process.env.DB_PATH || defaultPath) {
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
   `);
+  for (const column of ['email TEXT', 'password_hash TEXT']) {
+    try { db.exec(`ALTER TABLE users ADD COLUMN ${column}`); } catch {}
+  }
+  db.exec('CREATE UNIQUE INDEX IF NOT EXISTS users_email_idx ON users(email) WHERE email IS NOT NULL;');
 
   const json = value => JSON.stringify(value ?? null);
   const parse = (value, fallback) => {
@@ -95,15 +108,30 @@ export function createStore(databasePath = process.env.DB_PATH || defaultPath) {
       return after;
     },
     listUsers() {
-      return db.prepare('SELECT id,display_name,role,team,active,created_at,updated_at FROM users ORDER BY display_name').all();
+      return db.prepare('SELECT id,display_name,role,email,team,active,created_at,updated_at FROM users ORDER BY display_name').all();
     },
     upsertUser(user) {
       db.prepare(`
-        INSERT INTO users(id,display_name,role,team,active,updated_at) VALUES(?,?,?,?,?,CURRENT_TIMESTAMP)
+        INSERT INTO users(id,display_name,role,email,password_hash,team,active,updated_at) VALUES(?,?,?,?,?,?,?,CURRENT_TIMESTAMP)
         ON CONFLICT(id) DO UPDATE SET display_name=excluded.display_name,role=excluded.role,
-          team=excluded.team,active=excluded.active,updated_at=CURRENT_TIMESTAMP
-      `).run(user.id, user.displayName, user.role, user.team || null, user.active === false ? 0 : 1);
-      return db.prepare('SELECT * FROM users WHERE id=?').get(user.id);
+          email=COALESCE(excluded.email,users.email),password_hash=COALESCE(excluded.password_hash,users.password_hash),team=excluded.team,active=excluded.active,updated_at=CURRENT_TIMESTAMP
+      `).run(user.id, user.displayName, user.role, user.email?.toLowerCase() || null, user.passwordHash || null, user.team || null, user.active === false ? 0 : 1);
+      const row = db.prepare('SELECT id,display_name,role,email,team,active,created_at,updated_at FROM users WHERE id=?').get(user.id);
+      return row;
+    },
+    findAuthUserByEmail(email) {
+      return db.prepare('SELECT * FROM users WHERE lower(email)=lower(?) AND active=1').get(email);
+    },
+    findUserById(id) {
+      return db.prepare('SELECT id,display_name,role,email,team,active,created_at,updated_at FROM users WHERE id=? AND active=1').get(id);
+    },
+    updateUserPassword(id, passwordHash) {
+      db.prepare('UPDATE users SET password_hash=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').run(passwordHash, id);
+      return this.findUserById(id);
+    },
+    setUserActive(id, active) {
+      db.prepare('UPDATE users SET active=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').run(active ? 1 : 0, id);
+      return db.prepare('SELECT id,display_name,role,email,team,active,created_at,updated_at FROM users WHERE id=?').get(id);
     },
     audit({ period = null, actor = {}, action, entityType = null, entityId = null, before = null, after = null }) {
       db.prepare(`
@@ -127,6 +155,16 @@ export function createStore(databasePath = process.env.DB_PATH || defaultPath) {
     listFormulaVersions() {
       return db.prepare('SELECT * FROM formula_versions ORDER BY id DESC').all()
         .map(row => ({ ...row, formula: parse(row.formula_json, {}) }));
+    },
+    createSnapshot({ period, snapshot, checksum, actor = {} }) {
+      db.prepare('INSERT OR IGNORE INTO period_snapshots(period,snapshot_json,checksum,created_by) VALUES(?,?,?,?)')
+        .run(period, json(snapshot), checksum, actor.id || null);
+      const row = db.prepare('SELECT * FROM period_snapshots WHERE period=?').get(period);
+      return row ? { ...row, snapshot: parse(row.snapshot_json, {}) } : null;
+    },
+    getSnapshot(period) {
+      const row = db.prepare('SELECT * FROM period_snapshots WHERE period=?').get(period);
+      return row ? { ...row, snapshot: parse(row.snapshot_json, {}) } : null;
     },
     startJiraSync({ syncKey, jql, startedAt }) {
       db.prepare(`

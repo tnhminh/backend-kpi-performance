@@ -1,6 +1,7 @@
 backend/.env
 .env
 backend/data/
+data/
 backend/*.sqlite
 backend/*.sqlite-shm
 backend/*.sqlite-wal

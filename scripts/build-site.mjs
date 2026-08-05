@@ -10,6 +10,9 @@ const migrations = path.join(root, 'drizzle');
 const staticFiles = [
   'index.html',
   'app.js',
+  'mock-jira-data.js',
+  'reconciliation.js',
+  'users-admin.js',
   'styles.css',
   'tour-fix.js',
   'tour-fix.css',
@@ -24,7 +27,9 @@ const staticFiles = [
   'evaluation-formulas.js',
   'delivery-scoring.js',
   'comparison-formula.js',
-  'jira-storypoint-autofill.js'
+  'jira-storypoint-autofill.js',
+  'local-api-fix.js',
+  'auth-ui.js'
 ];
 
 mkdirSync(client, { recursive: true });

@@ -37,6 +37,11 @@ services:
       DB_DRIVER: postgres
       DATABASE_URL: postgresql://${POSTGRES_USER:-backend_kpi}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-backend_kpi}
       REDIS_URL: redis://redis:6379
+      APP_ORIGIN: ${APP_ORIGIN}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_TTL_SECONDS: ${JWT_TTL_SECONDS:-28800}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       JIRA_BASE_URL: ${JIRA_BASE_URL:-}
       JIRA_PROJECT_KEY: ${JIRA_PROJECT_KEY:-}
       JIRA_AUTH_TYPE: ${JIRA_AUTH_TYPE:-pat}

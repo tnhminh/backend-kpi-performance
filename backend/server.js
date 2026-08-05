@@ -1,9 +1,10 @@
 import http from 'node:http';
 import { readFileSync, existsSync } from 'node:fs';
 import { URL } from 'node:url';
-import { createHash } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { createPostgresStore } from './store-postgres.js';
 import { createClient } from 'redis';
+import { hashPassword, readCookie, signJwt, verifyJwt, verifyPassword } from './auth.js';
 
 function loadEnvFile() {
   const path = new URL('./.env', import.meta.url);
@@ -35,13 +36,21 @@ const config = {
   maxIssues: Number(process.env.JIRA_SYNC_MAX_ISSUES || 1000),
   searchFields: process.env.JIRA_SEARCH_FIELDS || 'summary,assignee,status,priority,labels,issuetype,created,updated',
   defaultJql: process.env.JIRA_DEFAULT_JQL || 'ORDER BY created DESC',
-  databasePath: process.env.DB_PATH || undefined
+  syncIntervalMinutes: Number(process.env.JIRA_SYNC_INTERVAL_MINUTES || 0),
+  databasePath: process.env.DB_PATH || undefined,
+  appOrigins: (process.env.APP_ORIGIN || 'http://localhost:5175,http://127.0.0.1:5175').split(',').map(value => value.trim()).filter(Boolean),
+  jwtSecret: process.env.JWT_SECRET || randomBytes(32).toString('base64url'),
+  jwtTtlSeconds: Number(process.env.JWT_TTL_SECONDS || 60 * 60 * 8),
+  bootstrapEmail: String(process.env.ADMIN_EMAIL || '').trim().toLowerCase(),
+  bootstrapPassword: String(process.env.ADMIN_PASSWORD || '')
 };
+if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) throw new Error('JWT_SECRET is required in production');
 const store = process.env.DB_DRIVER === 'postgres'
   ? await createPostgresStore(process.env.DATABASE_URL)
   : (await import('./store.js')).createStore(config.databasePath);
 const redis = createClient({ url: process.env.REDIS_URL || 'redis://localhost:6379' });
 let redisReady = false;
+let localSyncActive = false;
 redis.on('error', error => console.error(`Redis error: ${error.message}`));
 if (process.env.REDIS_URL) {
   try {
@@ -53,26 +62,53 @@ if (process.env.REDIS_URL) {
   } catch (error) { console.warn(`Redis unavailable: ${error.message}`); }
 }
 
-function send(res, status, body) {
+function send(res, status, body, extraHeaders = {}) {
   const payload = JSON.stringify(body);
+  const requestOrigin = res.req?.headers.origin;
+  const allowedOrigin = config.appOrigins.includes(requestOrigin) ? requestOrigin : config.appOrigins[0];
   res.writeHead(status, {
     'content-type': 'application/json; charset=utf-8',
-    'access-control-allow-origin': '*',
-    'access-control-allow-methods': 'GET,POST,OPTIONS',
-    'access-control-allow-headers': 'content-type,x-user-id,x-user-role,authorization'
+    'access-control-allow-origin': allowedOrigin,
+    'access-control-allow-credentials': 'true',
+    'access-control-allow-methods': 'GET,POST,PUT,OPTIONS',
+    'access-control-allow-headers': 'content-type,authorization',
+    ...extraHeaders
   });
   res.end(payload);
 }
 
-function actorFrom(req) {
-  const role = String(req.headers['x-user-role'] || 'Admin');
-  return {
-    id: String(req.headers['x-user-id'] || 'demo-admin'),
-    role: ['Member', 'Leader', 'Admin'].includes(role) ? role : 'Member'
-  };
+async function bootstrapAdmin() {
+  if (!config.bootstrapEmail || !config.bootstrapPassword) return;
+  const existing = await store.findAuthUserByEmail(config.bootstrapEmail);
+  if (existing) return;
+  if (config.bootstrapPassword.length < 12) throw new Error('ADMIN_PASSWORD must be at least 12 characters');
+  const id = `admin-${createHash('sha256').update(config.bootstrapEmail).digest('hex').slice(0, 16)}`;
+  await store.upsertUser({
+    id,
+    email: config.bootstrapEmail,
+    displayName: 'System Admin',
+    role: 'Admin',
+    passwordHash: hashPassword(config.bootstrapPassword)
+  });
+  console.log(`Bootstrapped admin account: ${config.bootstrapEmail}`);
+}
+
+await bootstrapAdmin();
+
+async function actorFrom(req) {
+  const payload = verifyJwt(readCookie(req.headers.cookie, 'kpi_session'), config.jwtSecret);
+  if (!payload?.sub) return null;
+  const user = await store.findUserById(payload.sub);
+  return user ? { id: user.id, role: user.role, email: user.email, name: user.display_name } : null;
+}
+
+function requireAuth(actor) {
+  if (!actor) throw Object.assign(new Error('Bạn cần đăng nhập để tiếp tục'), { status: 401 });
+  return actor;
 }
 
 function requireRole(actor, allowed) {
+  requireAuth(actor);
   if (!allowed.includes(actor.role)) {
     const error = new Error(`Vai trò ${actor.role} không có quyền thực hiện thao tác này`);
     error.status = 403;
@@ -99,10 +135,26 @@ function ensureConfigured() {
 
 async function jiraRequest(path, options = {}) {
   ensureConfigured();
-  const response = await fetch(`${config.baseUrl}${path}`, {
-    ...options,
-    headers: { accept: 'application/json', ...authHeaders(), ...(options.headers || {}) }
-  });
+  const maxAttempts = Math.max(1, Number(process.env.JIRA_RETRY_ATTEMPTS || 3));
+  let response;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), Number(process.env.JIRA_REQUEST_TIMEOUT_MS || 15000));
+    try {
+      response = await fetch(`${config.baseUrl}${path}`, {
+        ...options,
+        signal: options.signal || controller.signal,
+        headers: { accept: 'application/json', ...authHeaders(), ...(options.headers || {}) }
+      });
+    } catch (error) {
+      if (attempt >= maxAttempts) throw new Error(`Không thể kết nối Jira sau ${attempt} lần thử: ${error.message}`);
+      await new Promise(resolve => setTimeout(resolve, 250 * 2 ** (attempt - 1)));
+      continue;
+    } finally { clearTimeout(timeout); }
+    if (response.ok || ![408, 429, 500, 502, 503, 504].includes(response.status) || attempt >= maxAttempts) break;
+    const retryAfter = Number(response.headers.get('retry-after') || 0);
+    await new Promise(resolve => setTimeout(resolve, retryAfter > 0 ? retryAfter * 1000 : 250 * 2 ** (attempt - 1)));
+  }
   const text = await response.text();
   let data;
   try { data = text ? JSON.parse(text) : {}; } catch { data = { raw: text }; }
@@ -181,6 +233,24 @@ async function syncIssues(query) {
   return { startAt: Number(query.get('startAt') || 0), maxResults: pageSize, maxIssues: limit, pages, total, issues: issues.slice(0, limit) };
 }
 
+async function runScheduledSync() {
+  if (!config.syncIntervalMinutes || !config.baseUrl || !config.token) return;
+  const query = new URLSearchParams({ jql: config.defaultJql, maxIssues: String(config.maxIssues), maxResults: String(config.maxResults) });
+  const startedAt = new Date().toISOString();
+  const syncKey = createHash('sha256').update(`scheduled|${startedAt.slice(0, 16)}`).digest('hex');
+  try {
+    await store.startJiraSync({ syncKey, jql: resolvedJql(query), startedAt });
+    const result = await syncIssues(query);
+    const warnings = jiraQualityWarnings(result.issues);
+    await store.upsertJiraIssues(result.issues, syncKey);
+    await store.finishJiraSync({ syncKey, total: result.issues.length, warnings });
+    console.log(`Scheduled Jira sync completed: ${result.issues.length} issues`);
+  } catch (error) {
+    await store.finishJiraSync({ syncKey, total: 0, warnings: [{ code: 'sync_failed', label: error.message, count: 1, keys: [] }] }).catch(() => {});
+    console.error(`Scheduled Jira sync failed: ${error.message}`);
+  }
+}
+
 async function readJson(req) {
   let body = '';
   for await (const chunk of req) body += chunk;
@@ -233,9 +303,25 @@ async function autofillStoryPoints(body, actor) {
 async function handle(req, res) {
   if (req.method === 'OPTIONS') return send(res, 204, {});
   const url = new URL(req.url, `http://${req.headers.host}`);
-  const actor = actorFrom(req);
+  const actor = await actorFrom(req);
   try {
     if (url.pathname === '/api/health') return send(res, 200, { ok: true, jiraConfigured: Boolean(config.baseUrl && config.token), projectKey: config.projectKey, storage: await store.health(), redis: { ok: redisReady } });
+    if (url.pathname === '/api/auth/login' && req.method === 'POST') {
+      const body = await readJson(req);
+      const email = String(body.email || '').trim().toLowerCase();
+      const password = String(body.password || '');
+      const user = email ? await store.findAuthUserByEmail(email) : null;
+      if (!user || !verifyPassword(password, user.password_hash)) throw Object.assign(new Error('Email hoặc mật khẩu không đúng'), { status: 401 });
+      const token = signJwt({ sub: user.id }, config.jwtSecret, config.jwtTtlSeconds);
+      const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
+      return send(res, 200, { user: { id: user.id, email: user.email, name: user.display_name, role: user.role } }, { 'set-cookie': `kpi_session=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${config.jwtTtlSeconds}${secure}` });
+    }
+    if (url.pathname === '/api/auth/logout' && req.method === 'POST') return send(res, 200, { ok: true }, { 'set-cookie': 'kpi_session=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0' });
+    if (url.pathname === '/api/auth/me' && req.method === 'GET') {
+      requireAuth(actor);
+      return send(res, 200, { user: { id: actor.id, email: actor.email, name: actor.name, role: actor.role } });
+    }
+    requireAuth(actor);
     if (url.pathname === '/api/state' && req.method === 'GET') {
       const period = url.searchParams.get('period');
       if (!period) return send(res, 400, { error: 'Thiếu period' });
@@ -244,12 +330,28 @@ async function handle(req, res) {
     if (url.pathname === '/api/state' && (req.method === 'POST' || req.method === 'PUT')) {
       const body = await readJson(req);
       if (!body.period) return send(res, 400, { error: 'Thiếu period' });
+      const existingPeriod = await store.getPeriod(body.period);
+      const previousStatus = existingPeriod?.status || 'draft';
+      const nextStatus = body.status || previousStatus;
+      const allowedTransitions = { draft: ['draft', 'submitted'], submitted: ['submitted', 'approved'], approved: ['approved', 'locked'], locked: ['locked'] };
+      if (!(allowedTransitions[previousStatus] || []).includes(nextStatus)) return send(res, 409, { error: `Không thể chuyển trạng thái từ ${previousStatus} sang ${nextStatus}` });
+      if (nextStatus === 'submitted') requireRole(actor, ['Member', 'Leader', 'Admin']);
+      if (nextStatus === 'approved') requireRole(actor, ['Leader', 'Admin']);
+      if (nextStatus === 'locked') requireRole(actor, ['Admin']);
+      if (previousStatus === 'locked' && nextStatus === 'locked' && actor.role !== 'Admin') requireRole(actor, ['Admin']);
       let nextState = body.state || {};
       if (actor.role === 'Member') {
         const current = (await store.getPeriod(body.period))?.state || {};
         nextState = { ...current, [actor.id]: nextState[actor.id] || current[actor.id] || {} };
       }
-      return send(res, 200, { period: await store.savePeriod({ ...body, state: nextState, actor }) });
+      const period = await store.savePeriod({ ...body, status: nextStatus, state: nextState, actor });
+      let snapshot = null;
+      if (nextStatus === 'locked' && previousStatus !== 'locked') {
+        const snapshotPayload = body.snapshot || { period: body.period, status: 'locked', state: nextState, formula: body.formula || null, createdAt: new Date().toISOString() };
+        const checksum = createHash('sha256').update(JSON.stringify(snapshotPayload)).digest('hex');
+        snapshot = await store.createSnapshot({ period: body.period, snapshot: snapshotPayload, checksum, actor });
+      }
+      return send(res, 200, { period, snapshot });
     }
     if (url.pathname === '/api/users' && req.method === 'GET') {
       requireRole(actor, ['Leader', 'Admin']);
@@ -257,11 +359,35 @@ async function handle(req, res) {
     }
     if (url.pathname === '/api/users' && req.method === 'POST') {
       requireRole(actor, ['Admin']);
-      return send(res, 200, { user: await store.upsertUser(await readJson(req)) });
+      const body = await readJson(req);
+      if (!body.id || !body.email || !body.displayName || !body.role) return send(res, 400, { error: 'Thiếu id, email, displayName hoặc role' });
+      if (body.password && String(body.password).length < 12) return send(res, 400, { error: 'Mật khẩu phải có ít nhất 12 ký tự' });
+      return send(res, 200, { user: await store.upsertUser({ ...body, passwordHash: body.password ? hashPassword(String(body.password)) : undefined }) });
+    }
+    const userPasswordMatch = url.pathname.match(/^\/api\/users\/([^/]+)\/password$/);
+    if (userPasswordMatch && req.method === 'POST') {
+      requireRole(actor, ['Admin']);
+      const body = await readJson(req);
+      if (String(body.password || '').length < 12) return send(res, 400, { error: 'Mật khẩu phải có ít nhất 12 ký tự' });
+      return send(res, 200, { user: await store.updateUserPassword(decodeURIComponent(userPasswordMatch[1]), hashPassword(String(body.password))) });
+    }
+    const userMatch = url.pathname.match(/^\/api\/users\/([^/]+)$/);
+    if (userMatch && req.method === 'PATCH') {
+      requireRole(actor, ['Admin']);
+      const body = await readJson(req);
+      const existing = await store.findUserById(decodeURIComponent(userMatch[1]));
+      if (!existing) return send(res, 404, { error: 'Không tìm thấy user' });
+      return send(res, 200, { user: await store.upsertUser({ ...existing, id: existing.id, displayName: body.displayName || existing.name || existing.display_name, role: body.role || existing.role, team: body.team ?? existing.team, active: body.active !== undefined ? body.active : existing.active }) });
     }
     if (url.pathname === '/api/audit' && req.method === 'GET') {
       requireRole(actor, ['Leader', 'Admin']);
       return send(res, 200, { logs: await store.listAudit(url.searchParams.get('period'), Math.min(Number(url.searchParams.get('limit') || 200), 1000)) });
+    }
+    if (url.pathname === '/api/snapshots' && req.method === 'GET') {
+      requireRole(actor, ['Leader', 'Admin']);
+      const period = url.searchParams.get('period');
+      if (!period) return send(res, 400, { error: 'Thiếu period' });
+      return send(res, 200, { snapshot: await store.getSnapshot(period) });
     }
     if (url.pathname === '/api/formulas' && req.method === 'GET') {
       return send(res, 200, { versions: await store.listFormulaVersions() });
@@ -293,13 +419,15 @@ async function handle(req, res) {
     }
     if (url.pathname === '/api/sync') {
       requireRole(actor, ['Leader', 'Admin']);
+      if (localSyncActive) throw Object.assign(new Error('Một lượt đồng bộ tương tự đang chạy'), { status: 409 });
+      localSyncActive = true;
       const jql = resolvedJql(url.searchParams);
       const startedAt = new Date().toISOString();
       const syncKey = createHash('sha256').update(`${jql}|${startedAt.slice(0, 16)}`).digest('hex');
       const lockKey = `kpi:sync:${syncKey}`;
       if (redisReady) {
         const lock = await redis.set(lockKey, '1', { NX: true, EX: 900 });
-        if (lock !== 'OK') throw Object.assign(new Error('Một lượt đồng bộ tương tự đang chạy'), { status: 409 });
+        if (lock !== 'OK') { localSyncActive = false; throw Object.assign(new Error('Một lượt đồng bộ tương tự đang chạy'), { status: 409 }); }
       }
       try {
         await store.startJiraSync({ syncKey, jql, startedAt });
@@ -310,6 +438,7 @@ async function handle(req, res) {
         return send(res, 200, { syncKey, syncedAt: new Date().toISOString(), ...result, warnings, doneStatuses: config.doneStatuses });
       } finally {
         if (redisReady) await redis.del(lockKey);
+        localSyncActive = false;
       }
     }
     return send(res, 404, { error: 'Not found' });
@@ -320,6 +449,12 @@ async function handle(req, res) {
 
 http.createServer(handle).listen(config.port, () => {
   console.log(`Backend KPI Jira connector listening on http://localhost:${config.port}`);
+  if (config.syncIntervalMinutes > 0) {
+    const intervalMs = config.syncIntervalMinutes * 60 * 1000;
+    setTimeout(() => void runScheduledSync(), 1000);
+    setInterval(() => void runScheduledSync(), intervalMs);
+    console.log(`Scheduled Jira sync enabled every ${config.syncIntervalMinutes} minute(s)`);
+  }
 });
 
 const shutdown = async signal => {

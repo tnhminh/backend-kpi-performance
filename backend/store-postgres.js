@@ -7,6 +7,8 @@ CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
   display_name TEXT NOT NULL,
   role TEXT NOT NULL CHECK(role IN ('Member','Leader','Admin')),
+  email TEXT UNIQUE,
+  password_hash TEXT,
   team TEXT,
   active BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -24,6 +26,13 @@ CREATE TABLE IF NOT EXISTS formula_versions (
   id BIGSERIAL PRIMARY KEY,
   version TEXT NOT NULL UNIQUE,
   formula_json JSONB NOT NULL,
+  checksum TEXT NOT NULL,
+  created_by TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE TABLE IF NOT EXISTS period_snapshots (
+  period TEXT PRIMARY KEY,
+  snapshot_json JSONB NOT NULL,
   checksum TEXT NOT NULL,
   created_by TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -84,6 +93,7 @@ export async function createPostgresStore(connectionString = process.env.DATABAS
   if (!connectionString) throw new Error('DATABASE_URL is required when DB_DRIVER=postgres');
   const pool = new Pool({ connectionString, max: Number(process.env.DB_POOL_MAX || 10), ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined });
   await pool.query(schema);
+  await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT; ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT; CREATE UNIQUE INDEX IF NOT EXISTS users_email_idx ON users(email) WHERE email IS NOT NULL;');
   const queryOne = async (text, values = []) => (await pool.query(text, values)).rows[0] || null;
   const queryAll = async (text, values = []) => (await pool.query(text, values)).rows;
   const json = value => value === undefined ? null : JSON.stringify(value);
@@ -108,10 +118,14 @@ export async function createPostgresStore(connectionString = process.env.DATABAS
         VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`, [period, actor.id || null, actor.role || null, before ? 'UPDATE_PERIOD' : 'CREATE_PERIOD', 'period', period, json(before), json(after)]);
       return { ...after, state: parse(after.state_json, {}) };
     },
-    listUsers: () => queryAll('SELECT id,display_name,role,team,active,created_at,updated_at FROM users ORDER BY display_name'),
-    upsertUser: async user => queryOne(`INSERT INTO users(id,display_name,role,team,active) VALUES($1,$2,$3,$4,$5)
-      ON CONFLICT(id) DO UPDATE SET display_name=EXCLUDED.display_name,role=EXCLUDED.role,team=EXCLUDED.team,active=EXCLUDED.active,updated_at=NOW()
-      RETURNING *`, [user.id, user.displayName, user.role, user.team || null, user.active !== false]),
+    listUsers: () => queryAll('SELECT id,display_name,role,email,team,active,created_at,updated_at FROM users ORDER BY display_name'),
+    upsertUser: async user => queryOne(`INSERT INTO users(id,display_name,role,email,password_hash,team,active) VALUES($1,$2,$3,$4,$5,$6,$7)
+      ON CONFLICT(id) DO UPDATE SET display_name=EXCLUDED.display_name,role=EXCLUDED.role,email=COALESCE(EXCLUDED.email,users.email),password_hash=COALESCE(EXCLUDED.password_hash,users.password_hash),team=EXCLUDED.team,active=EXCLUDED.active,updated_at=NOW()
+      RETURNING id,display_name,role,email,team,active,created_at,updated_at`, [user.id, user.displayName, user.role, user.email?.toLowerCase() || null, user.passwordHash || null, user.team || null, user.active !== false]),
+    findAuthUserByEmail: email => queryOne('SELECT * FROM users WHERE lower(email)=lower($1) AND active=TRUE', [email]),
+    findUserById: id => queryOne('SELECT id,display_name,role,email,team,active,created_at,updated_at FROM users WHERE id=$1 AND active=TRUE', [id]),
+    updateUserPassword: async (id, passwordHash) => { await pool.query('UPDATE users SET password_hash=$1,updated_at=NOW() WHERE id=$2', [passwordHash, id]); return queryOne('SELECT id,display_name,role,email,team,active,created_at,updated_at FROM users WHERE id=$1', [id]); },
+    setUserActive: async (id, active) => queryOne('UPDATE users SET active=$1,updated_at=NOW() WHERE id=$2 RETURNING id,display_name,role,email,team,active,created_at,updated_at', [Boolean(active), id]),
     audit: ({ period = null, actor = {}, action, entityType = null, entityId = null, before = null, after = null }) => queryOne(`INSERT INTO audit_logs(period,actor_id,actor_role,action,entity_type,entity_id,before_json,after_json)
       VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`, [period, actor.id || null, actor.role || null, action, entityType, entityId, json(before), json(after)]),
     listAudit: async (period, limit = 200) => {
@@ -124,6 +138,8 @@ export async function createPostgresStore(connectionString = process.env.DATABAS
       return { ...row, formula: parse(row.formula_json, {}) };
     },
     listFormulaVersions: async () => (await queryAll('SELECT * FROM formula_versions ORDER BY id DESC')).map(row => ({ ...row, formula: parse(row.formula_json, {}) })),
+    createSnapshot: async ({ period, snapshot, checksum, actor = {} }) => { await pool.query('INSERT INTO period_snapshots(period,snapshot_json,checksum,created_by) VALUES($1,$2,$3,$4) ON CONFLICT(period) DO NOTHING', [period, json(snapshot), checksum, actor.id || null]); const row = await queryOne('SELECT * FROM period_snapshots WHERE period=$1', [period]); return row ? { ...row, snapshot: parse(row.snapshot_json, {}) } : null; },
+    getSnapshot: async period => { const row = await queryOne('SELECT * FROM period_snapshots WHERE period=$1', [period]); return row ? { ...row, snapshot: parse(row.snapshot_json, {}) } : null; },
     startJiraSync: async ({ syncKey, jql, startedAt }) => { await pool.query(`INSERT INTO jira_sync_runs(sync_key,jql,started_at,status) VALUES($1,$2,$3,'running') ON CONFLICT(sync_key) DO NOTHING`, [syncKey, jql, startedAt]); return queryOne('SELECT * FROM jira_sync_runs WHERE sync_key=$1', [syncKey]); },
     finishJiraSync: async ({ syncKey, total, mapped = 0, warnings = [], status = 'completed' }) => { await pool.query(`UPDATE jira_sync_runs SET total=$1,mapped=$2,warnings_json=$3,status=$4,completed_at=NOW() WHERE sync_key=$5`, [total, mapped, json(warnings), status, syncKey]); return queryOne('SELECT * FROM jira_sync_runs WHERE sync_key=$1', [syncKey]); },
     listJiraSyncRuns: async (limit = 30) => (await queryAll('SELECT * FROM jira_sync_runs ORDER BY id DESC LIMIT $1', [limit])).map(row => ({ ...row, warnings: parse(row.warnings_json, []) })),
