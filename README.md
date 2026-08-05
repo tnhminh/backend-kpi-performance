@@ -28,13 +28,18 @@ Mở `http://127.0.0.1:5175/`. Tài khoản local mặc định nằm trong `bac
 
 - [Getting started](docs/GETTING_STARTED.md) — clone, chạy local, test.
 - [Architecture](docs/ARCHITECTURE.md) — frontend/backend/API/DB/auth/workflow.
+- [Database schema](docs/DATABASE_SCHEMA.md) — tables, migration và recovery.
+- [Data dictionary](docs/DATA_DICTIONARY.md) — KPI/Jira fields và quality rules.
 - [Project context](docs/PROJECT_CONTEXT.md) — KPI formula, Jira fields, module map.
+- [KPI calculation example](docs/KPI_CALCULATION_EXAMPLE.md) — ví dụ tính điểm end-to-end.
 - [API reference](docs/API_REFERENCE.md) — endpoint và quyền.
+- [RBAC matrix](docs/RBAC_MATRIX.md) — quyền theo role và workflow.
 - [Contributing](docs/CONTRIBUTING.md) — quy tắc sửa code và kiểm thử.
 - [Project handover](docs/PROJECT_HANDOVER.md) — bàn giao chi tiết.
 - [Current status](docs/CURRENT_STATUS.md) — những gì đã build và lưu ý production.
 - [Operations runbook](docs/OPERATIONS_RUNBOOK.md) — xử lý sự cố.
 - [Portable deployment](docs/DEPLOYMENT_PORTABLE.md) — Docker/PostgreSQL/Redis production.
+- [Test/release matrix](docs/TEST_RELEASE_MATRIX.md) — quality gates và rollback.
 
 ## Kiểm tra trước khi bàn giao
 

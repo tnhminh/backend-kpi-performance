@@ -1,42 +1,83 @@
 # Portable production deployment
 
-## What is included
+## Stack
 
-- `web`: Nginx serving the static frontend and proxying `/api`.
-- `backend`: Node.js API using PostgreSQL and Redis.
-- `db`: PostgreSQL 16 with a schema created automatically at startup.
-- `redis`: Redis 7 with AOF persistence, used for health and sync locking.
-- `scripts/deploy.sh`: one-command build, start and health check.
-- `scripts/backup.sh`: PostgreSQL backup.
+- `web`: Nginx serving `dist/client` and proxying `/api`.
+- `backend`: Node.js API with JWT auth and Jira connector.
+- `db`: PostgreSQL 16.
+- `redis`: Redis 7 with AOF, used for distributed Jira sync locking.
 
-## Deploy on a new Linux server
+## Requirements
 
-Requirements: Docker Engine, Docker Compose v2, Git and a server route to Jira Data Center. Linux/macOS use `.sh`; Windows uses `.ps1`.
+- Linux server with Docker Engine and Docker Compose v2.
+- DNS/TLS termination or an approved reverse proxy.
+- Network route/VPN from backend to Jira Data Center.
+- Production secrets and database backup location.
+
+## Configure
 
 ```sh
-git clone <repository-url>
+git clone https://github.com/tnhminh/backend-kpi-performance.git
 cd backend-kpi-performance
 cp .env.production.example .env
-# edit .env and set a strong POSTGRES_PASSWORD plus Jira settings
+```
+
+Set at minimum:
+
+```env
+POSTGRES_PASSWORD=<strong random secret>
+APP_ORIGIN=https://kpi.example.internal
+JWT_SECRET=<long random secret>
+ADMIN_EMAIL=<initial admin email>
+ADMIN_PASSWORD=<initial password, 12+ chars>
+JIRA_BASE_URL=https://jira.example.internal
+JIRA_PROJECT_KEY=BE
+JIRA_TOKEN=<PAT from secret manager>
+```
+
+Do not reuse local credentials. Protect `.env` and prefer injected secrets.
+
+## Deploy
+
+```sh
 ./scripts/deploy.sh
 ```
 
-On Windows PowerShell:
+Windows PowerShell operator:
 
 ```powershell
 .\scripts\deploy.ps1
 ```
 
-The application is available on `http://SERVER:8080` by default. Set `HTTP_PORT` to change it.
+Default external port is `8080`; override with `HTTP_PORT`.
 
-## Operations
+## Verify
 
 ```sh
 docker compose ps
-docker compose logs -f backend
+docker compose logs --tail=200 backend
 ./scripts/healthcheck.sh
-./scripts/backup.sh
-docker compose down
 ```
 
-Put TLS, DNS and an identity-aware reverse proxy in front of the stack before allowing broad access. The current demo RBAC headers are not a substitute for SSO/JWT at the network boundary.
+Then verify login, role restrictions, Jira connection/sync, one KPI save and a non-production workflow period.
+
+## Backup and restore
+
+```sh
+./scripts/backup.sh
+```
+
+A generated file is not sufficient proof. Restore it into an isolated PostgreSQL instance and validate row counts plus login/locked snapshot access. See [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md).
+
+## Release and rollback
+
+Follow [TEST_RELEASE_MATRIX.md](TEST_RELEASE_MATRIX.md). Record the previous container image/commit before deployment. Keep database changes backward compatible where possible; use an approved restore procedure for destructive migrations.
+
+## Security
+
+- JWT is stored in an HttpOnly cookie.
+- Set exact `APP_ORIGIN`; do not use wildcard CORS with credentials.
+- Put HTTPS in front of the stack.
+- Rotate bootstrap Admin password after handover.
+- Restrict Jira PAT permissions to required read scope.
+- Enable Redis for every multi-instance production deployment.

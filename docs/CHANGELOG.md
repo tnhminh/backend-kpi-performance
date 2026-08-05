@@ -1,5 +1,15 @@
 # Changelog bàn giao
 
+## 2026-08-06
+
+- Thêm email/password authentication, HttpOnly JWT cookie và user administration.
+- Thêm SQLite/PostgreSQL persistence, formula versions và immutable period snapshots.
+- Enforce workflow `draft → submitted → approved → locked` ở backend.
+- Thêm Jira retry/backoff, timeout, sync history, scheduler và lock fallback.
+- Thêm mock Jira 156 issues, task evidence và data-quality warnings.
+- Thêm Dashboard trưởng phòng, Đối soát KPI và export Excel/JSON/print-PDF.
+- Chuẩn hóa bộ docs onboarding, architecture, API, database, RBAC, KPI example, operations và release.
+
 ## 2026-07-28
 
 - Thêm Jira sync pagination và giới hạn số issue đồng bộ.

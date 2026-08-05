@@ -24,8 +24,8 @@ Last verified locally after the manager dashboard release.
 - Configure `JWT_SECRET`, admin credentials, Jira PAT and `APP_ORIGIN` through a secret manager.
 - Before go-live, validate Jira custom field IDs and Done status names against the target Jira Data Center.
 
-## Latest release
+## Release reference
 
-- Commit: `dbbd783 feat: add manager dashboard charts`
 - Branch: `main`
 - Remote: `https://github.com/tnhminh/backend-kpi-performance`
+- Run `git log -1 --oneline` for the current release commit; do not hardcode a stale commit in operational procedures.
